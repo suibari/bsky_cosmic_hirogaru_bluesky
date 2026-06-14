@@ -229,6 +229,14 @@ export async function fetchGraphData(handle: string): Promise<{
 		if (did && did !== selfDid) addCount(nodeMap, did, 'repost', 'actor')
 	}
 
+	// 自分がリプライした投稿の著者（reply.parent.uri からDIDを抽出）
+	for (const r of postRecords) {
+		const parentUri = (r.value as { reply?: { parent?: { uri?: string } } }).reply?.parent?.uri
+		if (!parentUri) continue
+		const did = extractDid(parentUri)
+		if (did && did !== selfDid) addCount(nodeMap, did, 'reply', 'actor')
+	}
+
 	// 自分がフォローしているユーザー
 	for (const r of followRecords) {
 		const subject = (r.value as { subject?: string }).subject
