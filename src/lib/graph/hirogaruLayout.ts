@@ -1,14 +1,18 @@
 import type Graph from 'graphology'
 import type { GraphNodeAttributes } from '$lib/types'
 
+const RING_SPACING = 2.5
+const MIN_NODE_SPACING = 2.0
+
 export function computeHirogaruPositions(
 	graph: Graph<GraphNodeAttributes>,
-	selfDid: string
+	selfDid: string,
+	displayCount?: number
 ): Record<string, { x: number; y: number }> {
 	const positions: Record<string, { x: number; y: number }> = {}
 	positions[selfDid] = { x: 0, y: 0 }
 
-	const others = graph
+	const allOthers = graph
 		.nodes()
 		.filter((n) => n !== selfDid)
 		.sort(
@@ -17,19 +21,30 @@ export function computeHirogaruPositions(
 				graph.getNodeAttribute(a, 'nodeData').totalScore
 		)
 
+	const others = displayCount !== undefined ? allOthers.slice(0, displayCount) : allOthers
 	if (others.length === 0) return positions
 
-	const maxScore = graph.getNodeAttribute(others[0], 'nodeData').totalScore
-	const minScore = graph.getNodeAttribute(others[others.length - 1], 'nodeData').totalScore
+	// Place in concentric rings, equal angular spacing per ring.
+	// Ring capacity grows with radius so node density stays roughly uniform.
+	let nodeIndex = 0
+	let ring = 1
 
-	others.forEach((node, i) => {
-		const score = graph.getNodeAttribute(node, 'nodeData').totalScore
-		const t = maxScore === minScore ? 0.5 : (score - minScore) / (maxScore - minScore)
-		// High score → small radius (close to center). Range: 1 to 10
-		const radius = 1 + (1 - t) * 9
-		const angle = (i / others.length) * Math.PI * 2
-		positions[node] = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius }
-	})
+	while (nodeIndex < others.length) {
+		const radius = ring * RING_SPACING
+		const capacity = Math.max(6, Math.floor((Math.PI * 2 * radius) / MIN_NODE_SPACING))
+		const inThisRing = Math.min(capacity, others.length - nodeIndex)
+
+		for (let i = 0; i < inThisRing; i++) {
+			// Start from top (−π/2) so the highest-score node sits at 12 o'clock
+			const angle = (i / capacity) * Math.PI * 2 - Math.PI / 2
+			positions[others[nodeIndex]] = {
+				x: Math.cos(angle) * radius,
+				y: Math.sin(angle) * radius
+			}
+			nodeIndex++
+		}
+		ring++
+	}
 
 	return positions
 }

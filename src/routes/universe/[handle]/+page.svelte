@@ -16,12 +16,17 @@
 	let error = $state<string | null>(null)
 	let mode = $state<GraphMode>('cosmic')
 	let controller = $state<SigmaController | null>(null)
+	let displayCount = $state(0)
 	let tooltipNode = $state<NodeData | null>(null)
 	let tooltipX = $state(0)
 	let tooltipY = $state(0)
 
+	// Combined effect: re-runs when mode OR displayCount changes.
+	// setMode handles "same mode / different count" internally (no full re-init).
 	$effect(() => {
-		if (controller) controller.setMode(mode)
+		if (!controller) return
+		const count = displayCount > 0 ? displayCount : controller.totalNodeCount
+		controller.setMode(mode, count)
 	})
 
 	onMount(() => {
@@ -38,6 +43,7 @@
 
 				ctrl = initSigma(sigmaEl, nodes, selfDid, selfProfile)
 				controller = ctrl
+				displayCount = ctrl.totalNodeCount
 
 				ctrl.sigma.on('enterNode', ({ node, event }) => {
 					tooltipNode = ctrl!.getNodeData(node)
@@ -145,6 +151,25 @@
 				>
 					トップへ戻る
 				</button>
+			</div>
+		{/if}
+
+		<!-- Node count slider (hirogaru mode only) -->
+		{#if mode === 'hirogaru' && controller}
+			<div
+				class="pointer-events-auto absolute right-4 top-14 flex flex-col items-center gap-1 rounded-xl bg-white/20 px-2 py-3 backdrop-blur"
+			>
+				<span class="text-xs font-mono font-semibold text-white">{displayCount}</span>
+				<input
+					type="range"
+					min="1"
+					max={controller.totalNodeCount}
+					bind:value={displayCount}
+					class="h-36 cursor-pointer accent-white"
+					style="writing-mode: vertical-lr; direction: rtl;"
+					aria-label="表示ノード数"
+				/>
+				<span class="text-xs text-white/60">1</span>
 			</div>
 		{/if}
 

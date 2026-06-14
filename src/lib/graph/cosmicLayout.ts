@@ -7,10 +7,10 @@ export function startCosmicLayout(graph: Graph, onStop?: () => void): FA2Instanc
 	const fa2 = new FA2Layout(graph, {
 		settings: {
 			barnesHutOptimize: true,
-			scalingRatio: 1,
-			gravity: 0.3,
-			// High slowDown suppresses initial explosive movement
-			slowDown: 80
+			scalingRatio: 2,
+			gravity: 0.5,
+			// High slowDown suppresses oscillation; nodes converge instead of bouncing
+			slowDown: 300
 		},
 		getEdgeWeight: 'weight'
 	})
@@ -18,6 +18,6 @@ export function startCosmicLayout(graph: Graph, onStop?: () => void): FA2Instanc
 	setTimeout(() => {
 		fa2.stop()
 		onStop?.()
-	}, 3000)
+	}, 2000)
 	return fa2
 }

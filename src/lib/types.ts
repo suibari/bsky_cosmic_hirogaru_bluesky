@@ -25,6 +25,7 @@ export type GraphNodeAttributes = {
 	image: string
 	color: string
 	fixed?: boolean
+	hidden?: boolean
 	nodeData: NodeData
 }
 
