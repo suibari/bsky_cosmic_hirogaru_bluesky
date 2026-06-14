@@ -1,9 +1,15 @@
+export type InteractionCounts = Record<
+	'like' | 'repost' | 'reply' | 'quote' | 'mention' | 'follow',
+	number
+>
+
 export type NodeData = {
 	did: string
 	handle: string
 	displayName: string
 	avatarUrl: string
-	counts: Record<'like' | 'repost' | 'reply' | 'quote' | 'follow', number>
+	actorCounts: InteractionCounts   // 自分 → 相手
+	targetCounts: InteractionCounts  // 相手 → 自分
 	totalScore: number
 	direction: 'actor' | 'target' | 'both'
 }

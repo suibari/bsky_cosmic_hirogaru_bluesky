@@ -86,7 +86,8 @@ export function initSigma(
 		handle: selfProfile.handle,
 		displayName: selfProfile.displayName,
 		avatarUrl: selfProfile.avatarUrl,
-		counts: { like: 0, repost: 0, reply: 0, quote: 0, follow: 0 },
+		actorCounts: { like: 0, repost: 0, reply: 0, quote: 0, mention: 0, follow: 0 },
+		targetCounts: { like: 0, repost: 0, reply: 0, quote: 0, mention: 0, follow: 0 },
 		totalScore: 0,
 		direction: 'actor'
 	}
@@ -105,9 +106,11 @@ export function initSigma(
 		nodeData: selfNodeData
 	})
 
-	for (const node of nodes) {
-		const angle = Math.random() * Math.PI * 2
-		const r = (Math.random() * 0.5 + 0.5) * 5
+	for (const [i, node] of nodes.entries()) {
+		// Evenly space nodes on a circle so FA2 starts from a spread-out state
+		// (random clustering causes violent initial oscillation)
+		const angle = (i / Math.max(nodes.length, 1)) * Math.PI * 2
+		const r = 8 + (Math.random() - 0.5) * 2
 		graph.addNode(node.did, {
 			x: Math.cos(angle) * r,
 			y: Math.sin(angle) * r,

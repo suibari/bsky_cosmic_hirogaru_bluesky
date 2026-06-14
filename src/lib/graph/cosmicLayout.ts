@@ -7,9 +7,10 @@ export function startCosmicLayout(graph: Graph, onStop?: () => void): FA2Instanc
 	const fa2 = new FA2Layout(graph, {
 		settings: {
 			barnesHutOptimize: true,
-			scalingRatio: 2,
-			gravity: 0.5,
-			slowDown: 10
+			scalingRatio: 1,
+			gravity: 0.3,
+			// High slowDown suppresses initial explosive movement
+			slowDown: 80
 		},
 		getEdgeWeight: 'weight'
 	})

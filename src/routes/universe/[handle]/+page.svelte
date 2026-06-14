@@ -151,13 +151,34 @@
 		<!-- Tooltip -->
 		{#if tooltipNode}
 			<div
-				class="pointer-events-none absolute max-w-50 rounded bg-black/80 px-3 py-2 text-sm text-white backdrop-blur"
+				class="pointer-events-none absolute rounded bg-black/80 px-3 py-2 text-sm text-white backdrop-blur"
 				style:left="{tooltipX + 12}px"
 				style:top="{tooltipY - 8}px"
 			>
-				<div class="truncate font-semibold">{tooltipNode.displayName || tooltipNode.handle}</div>
-				<div class="truncate text-zinc-400">@{tooltipNode.handle}</div>
-				<div class="mt-1 text-xs text-zinc-500">スコア: {tooltipNode.totalScore}</div>
+				<div class="max-w-48 truncate font-semibold">{tooltipNode.displayName || tooltipNode.handle}</div>
+				<div class="max-w-48 truncate text-zinc-400">@{tooltipNode.handle}</div>
+				{#if mode === 'cosmic'}
+					<table class="mt-1 text-xs">
+						<thead>
+							<tr>
+								<th class="w-20 text-left text-zinc-500"></th>
+								<th class="w-14 text-right text-zinc-400">From You</th>
+								<th class="w-14 text-right text-zinc-400">To You</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each [['Like', 'like'], ['Repost', 'repost'], ['Reply', 'reply'], ['Quote', 'quote'], ['Mention', 'mention']] as [label, key]}
+								<tr>
+									<td class="text-zinc-500">{label}</td>
+									<td class="text-right tabular-nums">{tooltipNode.actorCounts[key as keyof typeof tooltipNode.actorCounts]}</td>
+									<td class="text-right tabular-nums">{tooltipNode.targetCounts[key as keyof typeof tooltipNode.targetCounts]}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{:else}
+					<div class="mt-1 text-xs text-zinc-500">Score: {tooltipNode.totalScore}</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
