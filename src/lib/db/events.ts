@@ -41,8 +41,8 @@ export async function fetchEventsByDid(did: string): Promise<EventRecord[]> {
 export async function registerTrackedDid(did: string): Promise<void> {
 	const res = await dbFetch('/tracked_dids', {
 		method: 'POST',
-		headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' },
-		body: JSON.stringify({ did }),
+		headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+		body: JSON.stringify({ did, last_accessed_at: new Date().toISOString() }),
 	})
 	if (!res.ok) {
 		const text = await res.text()
