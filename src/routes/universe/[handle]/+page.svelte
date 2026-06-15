@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
 	import { page } from '$app/stores'
 	import { goto } from '$app/navigation'
 	import { fetchGraphData } from '$lib/graph/fetchGraphData'
@@ -21,6 +20,21 @@
 	let tooltipNode = $state<NodeData | null>(null)
 	let tooltipX = $state(0)
 	let tooltipY = $state(0)
+	let hideTooltipTimeout: ReturnType<typeof setTimeout> | null = null
+
+	function scheduleHideTooltip() {
+		hideTooltipTimeout = setTimeout(() => {
+			tooltipNode = null
+			hideTooltipTimeout = null
+		}, 150)
+	}
+
+	function cancelHideTooltip() {
+		if (hideTooltipTimeout) {
+			clearTimeout(hideTooltipTimeout)
+			hideTooltipTimeout = null
+		}
+	}
 
 	// Combined effect: re-runs when mode, displayCount, or displaySize changes.
 	// setMode handles "same mode / different params" internally (no full re-init).
@@ -30,13 +44,22 @@
 		controller.setMode(mode, count, displaySize)
 	})
 
-	onMount(() => {
+	$effect(() => {
+		const _handle = handle  // $effect がこの依存を追跡し、変化時に再実行する
+
 		let starfield: Starfield | null = null
 		let ctrl: SigmaController | null = null
+		let cancelled = false
+
+		loading = true
+		error = null
+		tooltipNode = null
+		cancelHideTooltip()
 
 		async function init() {
 			try {
-				const { nodes, selfDid, selfProfile } = await fetchGraphData(handle)
+				const { nodes, selfDid, selfProfile } = await fetchGraphData(_handle)
+				if (cancelled) return
 				loading = false
 
 				starfield = new Starfield(starfieldEl)
@@ -47,14 +70,16 @@
 				displayCount = ctrl.totalNodeCount
 
 				ctrl.sigma.on('enterNode', ({ node, event }) => {
+					cancelHideTooltip()
 					tooltipNode = ctrl!.getNodeData(node)
 					tooltipX = event.x
 					tooltipY = event.y
 				})
 				ctrl.sigma.on('leaveNode', () => {
-					tooltipNode = null
+					scheduleHideTooltip()
 				})
 			} catch (e) {
+				if (cancelled) return
 				loading = false
 				error = e instanceof Error ? e.message : 'データの取得に失敗しました'
 			}
@@ -63,6 +88,7 @@
 		init()
 
 		return () => {
+			cancelled = true
 			starfield?.stop()
 			ctrl?.kill()
 			controller = null
@@ -199,9 +225,11 @@
 		<!-- Tooltip -->
 		{#if tooltipNode}
 			<div
-				class="pointer-events-none absolute rounded bg-black/80 px-3 py-2 text-sm text-white backdrop-blur"
+				class="pointer-events-auto absolute rounded bg-black/80 px-3 py-2 text-sm text-white backdrop-blur"
 				style:left="{tooltipX + 12}px"
 				style:top="{tooltipY - 8}px"
+				onmouseenter={cancelHideTooltip}
+				onmouseleave={() => { tooltipNode = null }}
 			>
 				<div class="max-w-48 truncate font-semibold">{tooltipNode.displayName || tooltipNode.handle}</div>
 				<div class="max-w-48 truncate text-zinc-400">@{tooltipNode.handle}</div>
@@ -224,6 +252,12 @@
 							{/each}
 						</tbody>
 					</table>
+					<button
+						onclick={() => goto(`/universe/${encodeURIComponent(tooltipNode!.handle)}`)}
+						class="mt-2 w-full cursor-pointer rounded bg-indigo-600 py-1 text-xs font-bold hover:bg-indigo-500"
+					>
+						🚀 Warp!
+					</button>
 				{:else}
 					<div class="mt-1 text-xs text-zinc-500">Score: {tooltipNode.totalScore}</div>
 				{/if}
