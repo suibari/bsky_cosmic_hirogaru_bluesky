@@ -215,7 +215,7 @@
 			>
 				← 戻る
 			</button>
-			<span class="rounded bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur">
+			<span class="rounded bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur" style="font-family: 'MaruMinya', sans-serif;">
 				@{handle}
 			</span>
 			<div class="ml-auto flex overflow-hidden rounded">
@@ -253,7 +253,7 @@
 					class="w-full cursor-pointer accent-white"
 					aria-label="タイムライン"
 				/>
-				<div class="flex justify-between text-xs text-white/60">
+				<div class="flex justify-between text-xs text-white/60" style="font-family: 'MaruMinya', sans-serif;">
 					<span>{formatTimelineDate(timelineMin)}</span>
 					<span class="font-semibold text-white">{formatTimelineDate(timelineDisplay)}</span>
 					<span>{formatTimelineDate(timelineMax)}</span>
@@ -291,10 +291,11 @@
 		{#if mode === 'hirogaru' && controller}
 			<div
 				class="pointer-events-auto absolute right-4 top-14 flex flex-row items-stretch gap-3 rounded-xl bg-white/20 px-3 py-3 backdrop-blur"
+				style="font-family: 'MaruMinya', sans-serif;"
 			>
 				<!-- 人数スライダー -->
 				<div class="flex flex-col items-center gap-1">
-					<span class="text-xs font-mono font-semibold text-white">{displayCount}</span>
+					<span class="text-xs font-semibold text-white">{displayCount}</span>
 					<input
 						type="range"
 						min="1"
@@ -311,7 +312,7 @@
 				<div class="w-px self-stretch bg-white/20"></div>
 				<!-- 大きさスライダー -->
 				<div class="flex flex-col items-center gap-1">
-					<span class="text-xs font-mono font-semibold text-white">{displaySize}</span>
+					<span class="text-xs font-semibold text-white">{displaySize}</span>
 					<input
 						type="range"
 						min="6"

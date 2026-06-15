@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation'
+	import TitleLogo from '$lib/components/TitleLogo.svelte'
 
 	let handle = $state('')
 	let error = $state('')
@@ -16,8 +17,8 @@
 </script>
 
 <main class="flex min-h-screen flex-col items-center justify-center bg-black text-white">
-	<h1 class="mb-2 text-4xl font-bold tracking-wide">超ひろがるBluesky!!</h1>
-	<p class="mb-8 text-sm text-zinc-400">Blueskyの人間関係を宇宙として可視化</p>
+	<TitleLogo />
+	<p class="mb-8 text-sm text-zinc-400" style="font-family: 'MaruMinya', sans-serif;">Blueskyで無限にひろがる青い宇宙!!</p>
 
 	<form
 		onsubmit={(e) => {
