@@ -74,7 +74,7 @@ export class SigmaController {
 		ctx.fillStyle = grad
 		ctx.fillRect(0, 0, offscreen.width, offscreen.height)
 		for (const canvas of Object.values(this.sigma.getCanvases())) {
-			ctx.drawImage(canvas as HTMLCanvasElement, 0, 0)
+			ctx.drawImage(canvas as HTMLCanvasElement, 0, 0, offscreen.width, offscreen.height)
 		}
 		return offscreen.toDataURL('image/jpeg', 0.85)
 	}
@@ -140,6 +140,7 @@ export class SigmaController {
 				this.sigma.setSetting('itemSizesReference', 'screen')
 				this.sigma.setSetting('enableCameraZooming', true)
 				this.sigma.setSetting('enableCameraPanning', true)
+				this.sigma.setSetting('enableCameraRotation', true)
 				for (const node of this.graph.nodes()) {
 					this.graph.removeNodeAttribute(node, 'hidden')
 					const nd = this.graph.getNodeAttribute(node, 'nodeData')
@@ -158,6 +159,7 @@ export class SigmaController {
 				this.sigma.setSetting('itemSizesReference', 'positions')
 				this.sigma.setSetting('enableCameraZooming', false)
 				this.sigma.setSetting('enableCameraPanning', false)
+				this.sigma.setSetting('enableCameraRotation', false)
 				this.sigma.getCamera().animate({ ratio: 1 }, { duration: 800 })
 				this.sigma.setSetting('edgeReducer', (_e, data) => ({ ...data, hidden: true }))
 				this.sigma.setSetting('nodeReducer', (_n, data) => ({ ...data, label: '' }))

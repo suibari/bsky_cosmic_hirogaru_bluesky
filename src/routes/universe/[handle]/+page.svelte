@@ -222,7 +222,7 @@
 			<div class="ml-auto flex overflow-hidden rounded">
 				<button
 					onclick={() => (mode = 'cosmic')}
-					class="px-3 py-1.5 text-sm font-medium transition-colors"
+					class="px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap"
 					style:background={mode === 'cosmic' ? '#4338ca' : 'rgba(0,0,0,0.4)'}
 					style:color={mode === 'cosmic' ? '#fff' : 'rgba(255,255,255,0.6)'}
 				>
@@ -230,7 +230,7 @@
 				</button>
 				<button
 					onclick={() => (mode = 'hirogaru')}
-					class="px-3 py-1.5 text-sm font-medium transition-colors"
+					class="px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap"
 					style:background={mode === 'hirogaru' ? '#0ea5e9' : 'rgba(0,0,0,0.4)'}
 					style:color={mode === 'hirogaru' ? '#fff' : 'rgba(255,255,255,0.6)'}
 				>
@@ -242,8 +242,8 @@
 		<!-- Timeline slider (top center) -->
 		{#if !loading && !error && timelineMax > timelineMin}
 			<div
-				class="pointer-events-auto absolute left-1/2 top-3 -translate-x-1/2 rounded-xl bg-black/40 px-3 py-2 backdrop-blur"
-				style="width: min(calc(100vw - 220px), 380px);"
+				class="pointer-events-auto absolute left-1/2 top-14 -translate-x-1/2 rounded-xl bg-black/40 px-3 py-2 backdrop-blur"
+				style="width: min(calc(100vw - 120px), 380px);"
 			>
 				<input
 					type="range"
@@ -292,7 +292,7 @@
 		<!-- Sliders (hirogaru mode only) -->
 		{#if mode === 'hirogaru' && controller}
 			<div
-				class="pointer-events-auto absolute right-4 top-14 flex flex-row items-stretch gap-3 rounded-xl bg-white/20 px-3 py-3 backdrop-blur"
+				class="pointer-events-auto absolute right-4 top-34 flex flex-row items-stretch gap-3 rounded-xl bg-white/20 px-3 py-3 backdrop-blur"
 				style="font-family: 'MaruMinya', sans-serif;"
 			>
 				<!-- 人数スライダー -->
@@ -336,7 +336,7 @@
 			<button
 				onclick={handleShare}
 				disabled={shareStatus === 'capturing' || shareStatus === 'uploading'}
-				class="pointer-events-auto absolute bottom-6 right-4 rounded-xl bg-white/30 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/50 disabled:opacity-60"
+				class="pointer-events-auto absolute bottom-6 right-4 rounded-xl bg-white/30 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/50 disabled:opacity-60 whitespace-nowrap"
 			>
 				{#if shareStatus === 'capturing' || shareStatus === 'uploading'}
 					⏳ 生成中...
