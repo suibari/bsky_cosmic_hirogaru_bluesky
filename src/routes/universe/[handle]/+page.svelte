@@ -108,7 +108,7 @@
 		let cancelled = false
 
 		loading = true
-		isFirstAccess = !localStorage.getItem(`hirogaru_v_${_handle}`)
+		isFirstAccess = false
 		error = null
 		tooltipNode = null
 		allEvents = []
@@ -121,11 +121,16 @@
 
 		async function init() {
 			try {
+				// /cached と /graph を並列起動し、/cached が先に返ったら isFirstAccess を設定
+				fetch(`/api/graph/${encodeURIComponent(_handle)}/cached`)
+					.then(r => r.json())
+					.then(({ isFirstAccess: fa }) => { if (!cancelled) isFirstAccess = fa })
+					.catch(() => {})
+
 				const res = await fetch(`/api/graph/${encodeURIComponent(_handle)}`)
 				if (!res.ok) throw new Error(`graph fetch failed: ${res.status}`)
 				const { nodes, selfDid, selfProfile, events } = await res.json()
 				if (cancelled) return
-				localStorage.setItem(`hirogaru_v_${_handle}`, '1')
 				loading = false
 
 				// Set up timeline state (follow events excluded — weight=0, not shown in tooltip)

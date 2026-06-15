@@ -1,5 +1,6 @@
 import { json, error } from '@sveltejs/kit'
 import { dev } from '$app/environment'
+import { env as privateEnv } from '$env/dynamic/private'
 import type { RequestHandler } from './$types'
 import { isTrackedDid, fetchEventsByDid, insertEvents, registerTrackedDid } from '$lib/db/events'
 import type { DbEnv } from '$lib/db/client'
@@ -10,9 +11,9 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 
 	const env: DbEnv = dev
 		? {
-			DB_API_URL:        process.env.DB_API_URL        ?? '',
-			CF_CLIENT_ID:      process.env.CF_CLIENT_ID      ?? '',
-			CF_CLIENT_SECRET:  process.env.CF_CLIENT_SECRET  ?? '',
+			DB_API_URL:        privateEnv.DB_API_URL        ?? '',
+			CF_CLIENT_ID:      privateEnv.CF_CLIENT_ID      ?? '',
+			CF_CLIENT_SECRET:  privateEnv.CF_CLIENT_SECRET  ?? '',
 		}
 		: platform!.env
 
