@@ -8,10 +8,10 @@ declare global {
 		// interface PageState {}
 		interface Platform {
 			env: {
-				SHARE_KV: KVNamespace
-			}
-			context: {
-				waitUntil(promise: Promise<unknown>): void
+				SHARE_KV: {
+					get(key: string): Promise<string | null>
+					put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
+				}
 			}
 		}
 	}

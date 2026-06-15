@@ -43,8 +43,12 @@
 				body: JSON.stringify({ handle, imageBase64 })
 			})
 			if (!res.ok) throw new Error('share failed')
-			const { url } = await res.json()
-			await navigator.clipboard.writeText(url)
+			const { url: shareUrl } = await res.json()
+
+			const postText = `@${handle}の超ひろがるBluesky!!\n${shareUrl}`
+			const bskyUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(postText)}`
+			window.open(bskyUrl, '_blank', 'noopener,noreferrer')
+
 			shareStatus = 'done'
 			setTimeout(() => { shareStatus = 'idle' }, 3000)
 		} catch {

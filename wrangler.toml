@@ -4,5 +4,5 @@ pages_build_output_dir = ".svelte-kit/cloudflare"
 
 [[kv_namespaces]]
 binding = "SHARE_KV"
-id = "YOUR_KV_NAMESPACE_ID"
-preview_id = "YOUR_PREVIEW_KV_NAMESPACE_ID"
+id = "1d8697092b7045d1b574cd019a5bdfc6"
+preview_id = "843392833a3c4be0841ad16a1739ac08"

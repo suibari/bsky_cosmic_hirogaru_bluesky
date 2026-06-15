@@ -272,6 +272,16 @@ export function initSigma(
 
 	const NodeImageProgram = createNodeImageProgram()
 
+	// Sigma 3.0.3 hardcodes preserveDrawingBuffer: false in its WebGL context creation,
+	// so we temporarily patch getContext to override it before Sigma initializes.
+	// This enables canvas.toDataURL() to read WebGL content for the share screenshot.
+	const _origGetContext = HTMLCanvasElement.prototype.getContext
+	;(HTMLCanvasElement.prototype as any).getContext = function (type: string, attrs?: Record<string, unknown>) {
+		if (type === 'webgl2' || type === 'webgl' || type === 'experimental-webgl') {
+			attrs = { ...(attrs ?? {}), preserveDrawingBuffer: true }
+		}
+		return _origGetContext.call(this, type, attrs)
+	}
 	const sigma = new Sigma(graph as any, container, {
 		nodeProgramClasses: { image: NodeImageProgram },
 		nodeHoverProgramClasses: { image: NodeImageProgram },
@@ -280,10 +290,9 @@ export function initSigma(
 		renderEdgeLabels: false,
 		labelFont: 'system-ui, sans-serif',
 		labelSize: 12,
-		labelColor: { color: '#ffffff' },
-		// @ts-expect-error: valid at runtime but missing from Sigma 3 type defs
-		webGLContextAttributes: { preserveDrawingBuffer: true }
+		labelColor: { color: '#ffffff' }
 	})
+	HTMLCanvasElement.prototype.getContext = _origGetContext
 
 	const controller = new SigmaController(sigma, graph, selfDid, nodes.length)
 	controller.startInitialLayout()
