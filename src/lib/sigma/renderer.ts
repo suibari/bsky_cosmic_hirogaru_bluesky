@@ -9,6 +9,14 @@ import type { NodeData, GraphMode, GraphNodeAttributes, GraphEdgeAttributes } fr
 type SigmaInstance = Sigma
 type GraphInstance = Graph<GraphNodeAttributes, GraphEdgeAttributes>
 
+function randomPastelGradient(): [string, string] {
+	const hue = Math.random() * 360
+	const hue2 = (hue + 30 + Math.random() * 30) % 360
+	const s = 40 + Math.random() * 25
+	const l = 75 + Math.random() * 13
+	return [`hsl(${hue}, ${s}%, ${l}%)`, `hsl(${hue2}, ${s + 10}%, ${l - 10}%)`]
+}
+
 const HIROGARU_BASE_NODE_SIZE = BASE_NODE_SIZE
 
 function nodeSize(score: number): number {
@@ -42,14 +50,33 @@ export class SigmaController {
 	sigma: SigmaInstance
 	graph: GraphInstance
 	totalNodeCount: number
+	readonly hirogaruBgColors: [string, string] = randomPastelGradient()
 	private selfDid: string
 	private currentMode: GraphMode = 'cosmic'
+	private hirogaruAngleOffset = Math.random() * 2 * Math.PI
 
 	constructor(sigma: SigmaInstance, graph: GraphInstance, selfDid: string, totalNodeCount: number) {
 		this.sigma = sigma
 		this.graph = graph
 		this.selfDid = selfDid
 		this.totalNodeCount = totalNodeCount
+	}
+
+	captureImage(container: HTMLElement): string {
+		const offscreen = document.createElement('canvas')
+		offscreen.width = container.offsetWidth
+		offscreen.height = container.offsetHeight
+		const ctx = offscreen.getContext('2d')!
+		const [c0, c1] = this.hirogaruBgColors
+		const grad = ctx.createLinearGradient(0, 0, offscreen.width, offscreen.height)
+		grad.addColorStop(0, c0)
+		grad.addColorStop(1, c1)
+		ctx.fillStyle = grad
+		ctx.fillRect(0, 0, offscreen.width, offscreen.height)
+		for (const canvas of Object.values(this.sigma.getCanvases())) {
+			ctx.drawImage(canvas as HTMLCanvasElement, 0, 0)
+		}
+		return offscreen.toDataURL('image/jpeg', 0.85)
 	}
 
 	startInitialLayout(): void {
@@ -161,7 +188,15 @@ export class SigmaController {
 			}
 		}
 
-		const targets = computeHirogaruPositions(this.graph, this.selfDid, count, nodeSize)
+		const targets = computeHirogaruPositions(this.graph, this.selfDid, count, nodeSize, this.hirogaruAngleOffset)
+
+		// Collapse hidden nodes to center so they don't inflate Sigma's graphExtent bounding box.
+		// graphExtent() iterates ALL nodes regardless of 'hidden', so stale outer positions
+		// prevent the normalization from shrinking when count decreases.
+		for (let i = count; i < orderedNodes.length; i++) {
+			targets[orderedNodes[i]] = { x: 0, y: 0 }
+		}
+
 		animateNodes(this.graph, targets, { duration, easing: 'cubicInOut' })
 		// Camera stays at ratio=1 (zoom/pan disabled in hirogaru mode)
 	}
@@ -242,11 +277,12 @@ export function initSigma(
 		nodeHoverProgramClasses: { image: NodeImageProgram },
 		defaultNodeType: 'image',
 		defaultEdgeType: 'line',
-		defaultEdgeSize: 1.5,
 		renderEdgeLabels: false,
 		labelFont: 'system-ui, sans-serif',
 		labelSize: 12,
-		labelColor: { color: '#ffffff' }
+		labelColor: { color: '#ffffff' },
+		// @ts-expect-error: valid at runtime but missing from Sigma 3 type defs
+		webGLContextAttributes: { preserveDrawingBuffer: true }
 	})
 
 	const controller = new SigmaController(sigma, graph, selfDid, nodes.length)

@@ -9,7 +9,8 @@ export function computeHirogaruPositions(
 	graph: Graph<GraphNodeAttributes>,
 	selfDid: string,
 	displayCount?: number,
-	nodeSize: number = BASE_NODE_SIZE
+	nodeSize: number = BASE_NODE_SIZE,
+	angleOffset: number = 0
 ): Record<string, { x: number; y: number }> {
 	const positions: Record<string, { x: number; y: number }> = {}
 	positions[selfDid] = { x: 0, y: 0 }
@@ -40,7 +41,7 @@ export function computeHirogaruPositions(
 		const inThisRing = Math.min(capacity, others.length - nodeIndex)
 
 		for (let i = 0; i < inThisRing; i++) {
-			const angle = (i / capacity) * 2 * Math.PI - Math.PI / 2
+			const angle = (i / capacity) * 2 * Math.PI - Math.PI / 2 + angleOffset
 			positions[others[nodeIndex]] = {
 				x: Math.cos(angle) * Rn,
 				y: Math.sin(angle) * Rn

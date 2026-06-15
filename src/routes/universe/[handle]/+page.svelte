@@ -21,6 +21,37 @@
 	let tooltipX = $state(0)
 	let tooltipY = $state(0)
 	let hideTooltipTimeout: ReturnType<typeof setTimeout> | null = null
+	let shareStatus = $state<'idle' | 'capturing' | 'uploading' | 'done' | 'error'>('idle')
+
+	// Persist slider values to localStorage
+	$effect(() => {
+		if (displayCount > 0) localStorage.setItem('hirogaru_displayCount', String(displayCount))
+	})
+	$effect(() => {
+		if (displaySize >= 6) localStorage.setItem('hirogaru_displaySize', String(displaySize))
+	})
+
+	async function handleShare() {
+		if (!controller || shareStatus === 'capturing' || shareStatus === 'uploading') return
+		shareStatus = 'capturing'
+		try {
+			const imageBase64 = controller.captureImage(sigmaEl)
+			shareStatus = 'uploading'
+			const res = await fetch('/api/share', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ handle, imageBase64 })
+			})
+			if (!res.ok) throw new Error('share failed')
+			const { url } = await res.json()
+			await navigator.clipboard.writeText(url)
+			shareStatus = 'done'
+			setTimeout(() => { shareStatus = 'idle' }, 3000)
+		} catch {
+			shareStatus = 'error'
+			setTimeout(() => { shareStatus = 'idle' }, 3000)
+		}
+	}
 
 	function scheduleHideTooltip() {
 		hideTooltipTimeout = setTimeout(() => {
@@ -67,7 +98,12 @@
 
 				ctrl = initSigma(sigmaEl, nodes, selfDid, selfProfile)
 				controller = ctrl
-				displayCount = ctrl.totalNodeCount
+
+				// Restore slider values from localStorage
+				const savedCount = parseInt(localStorage.getItem('hirogaru_displayCount') ?? '')
+				const savedSize = parseInt(localStorage.getItem('hirogaru_displaySize') ?? '')
+				displayCount = !isNaN(savedCount) ? Math.min(Math.max(1, savedCount), ctrl.totalNodeCount) : ctrl.totalNodeCount
+				displaySize = !isNaN(savedSize) ? Math.max(6, Math.min(28, savedSize)) : 14
 
 				ctrl.sigma.on('enterNode', ({ node, event }) => {
 					cancelHideTooltip()
@@ -105,13 +141,15 @@
 		style:display={mode === 'cosmic' ? 'block' : 'none'}
 	></canvas>
 
-	<!-- Hirogaru background (light blue gradient) -->
-	{#if mode === 'hirogaru'}
+	<!-- Hirogaru background (random pastel gradient, generated per session) -->
+	{#if mode === 'hirogaru' && controller}
 		<div
 			class="absolute inset-0"
 			style:z-index="0"
-			style:background="linear-gradient(135deg, #87ceeb 0%, #4a9eff 100%)"
+			style:background="linear-gradient(135deg, {controller.hirogaruBgColors[0]} 0%, {controller.hirogaruBgColors[1]} 100%)"
 		></div>
+	{:else if mode === 'hirogaru'}
+		<div class="absolute inset-0" style:z-index="0" style:background="#87ceeb"></div>
 	{/if}
 
 	<!-- Sigma canvas container -->
@@ -220,6 +258,25 @@
 					<span class="text-xs text-white/50">大きさ</span>
 				</div>
 			</div>
+		{/if}
+
+		<!-- Share button (hirogaru mode only) -->
+		{#if mode === 'hirogaru' && controller}
+			<button
+				onclick={handleShare}
+				disabled={shareStatus === 'capturing' || shareStatus === 'uploading'}
+				class="pointer-events-auto absolute bottom-6 right-4 rounded-xl bg-white/30 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/50 disabled:opacity-60"
+			>
+				{#if shareStatus === 'capturing' || shareStatus === 'uploading'}
+					⏳ 生成中...
+				{:else if shareStatus === 'done'}
+					✅ URLをコピーしました
+				{:else if shareStatus === 'error'}
+					❌ 失敗しました
+				{:else}
+					📤 シェア
+				{/if}
+			</button>
 		{/if}
 
 		<!-- Tooltip -->
