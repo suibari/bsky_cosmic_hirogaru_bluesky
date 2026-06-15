@@ -1,9 +1,9 @@
 import type Graph from 'graphology'
 import type { GraphNodeAttributes } from '$lib/types'
 
-const RING_SPACING = 2.5
-const MIN_NODE_SPACING = 2.0
-const BASE_NODE_SIZE = 14
+export const BASE_NODE_SIZE = 14
+const SELF_RADIUS = 20 // fixed radius of the self-node in graph coords (positions mode)
+const GAP = 4          // fixed edge-to-edge gap between any two adjacent nodes
 
 export function computeHirogaruPositions(
 	graph: Graph<GraphNodeAttributes>,
@@ -26,23 +26,24 @@ export function computeHirogaruPositions(
 	const others = displayCount !== undefined ? allOthers.slice(0, displayCount) : allOthers
 	if (others.length === 0) return positions
 
-	// Place in concentric rings, equal angular spacing per ring.
-	// Ring capacity grows with radius so node density stays roughly uniform.
+	// spacing = node diameter + gap (center-to-center distance that gives edge-to-edge gap = GAP)
+	const spacing = nodeSize + GAP
+	// R₁: first ring center = self radius + gap + node radius
+	const R1 = SELF_RADIUS + GAP + nodeSize / 2
+
 	let nodeIndex = 0
 	let ring = 1
 
 	while (nodeIndex < others.length) {
-		const radius = ring * RING_SPACING
-		const effectiveSpacing = MIN_NODE_SPACING * (nodeSize / BASE_NODE_SIZE)
-		const capacity = Math.max(6, Math.floor((Math.PI * 2 * radius) / effectiveSpacing))
+		const Rn = R1 + (ring - 1) * spacing
+		const capacity = Math.max(6, Math.floor((2 * Math.PI * Rn) / spacing))
 		const inThisRing = Math.min(capacity, others.length - nodeIndex)
 
 		for (let i = 0; i < inThisRing; i++) {
-			// Start from top (−π/2) so the highest-score node sits at 12 o'clock
-			const angle = (i / capacity) * Math.PI * 2 - Math.PI / 2
+			const angle = (i / capacity) * 2 * Math.PI - Math.PI / 2
 			positions[others[nodeIndex]] = {
-				x: Math.cos(angle) * radius,
-				y: Math.sin(angle) * radius
+				x: Math.cos(angle) * Rn,
+				y: Math.sin(angle) * Rn
 			}
 			nodeIndex++
 		}

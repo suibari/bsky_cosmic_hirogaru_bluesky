@@ -2,14 +2,14 @@ import Sigma from 'sigma'
 import { animateNodes } from 'sigma/utils'
 import Graph from 'graphology'
 import { createNodeImageProgram } from '@sigma/node-image'
-import { computeHirogaruPositions } from '$lib/graph/hirogaruLayout'
+import { computeHirogaruPositions, BASE_NODE_SIZE } from '$lib/graph/hirogaruLayout'
 import type { NodeData, GraphMode, GraphNodeAttributes, GraphEdgeAttributes } from '$lib/types'
 
 // Use default Sigma type to avoid variance conflicts with NodeImageProgram generics
 type SigmaInstance = Sigma
 type GraphInstance = Graph<GraphNodeAttributes, GraphEdgeAttributes>
 
-const HIROGARU_BASE_NODE_SIZE = 14
+const HIROGARU_BASE_NODE_SIZE = BASE_NODE_SIZE
 
 function nodeSize(score: number): number {
 	return Math.max(8, Math.min(30, 8 + Math.log1p(score) * 3))
@@ -103,6 +103,9 @@ export class SigmaController {
 			this.currentMode = mode
 
 			if (mode === 'cosmic') {
+				this.sigma.setSetting('itemSizesReference', 'screen')
+				this.sigma.setSetting('enableCameraZooming', true)
+				this.sigma.setSetting('enableCameraPanning', true)
 				for (const node of this.graph.nodes()) {
 					this.graph.removeNodeAttribute(node, 'hidden')
 					const nd = this.graph.getNodeAttribute(node, 'nodeData')
@@ -113,10 +116,17 @@ export class SigmaController {
 					)
 				}
 				this.sigma.setSetting('edgeReducer', null)
+				this.sigma.setSetting('nodeReducer', null)
+				this.sigma.getCamera().animate({ ratio: 1 }, { duration: 1200 })
 				this._snapToScoreRadius(1200)
 				return
 			} else {
+				this.sigma.setSetting('itemSizesReference', 'positions')
+				this.sigma.setSetting('enableCameraZooming', false)
+				this.sigma.setSetting('enableCameraPanning', false)
+				this.sigma.getCamera().animate({ ratio: 1 }, { duration: 800 })
 				this.sigma.setSetting('edgeReducer', (_e, data) => ({ ...data, hidden: true }))
+				this.sigma.setSetting('nodeReducer', (_n, data) => ({ ...data, label: '' }))
 			}
 		}
 
@@ -137,10 +147,15 @@ export class SigmaController {
 					this.graph.getNodeAttribute(a, 'nodeData').totalScore
 			)
 
+		// In positions mode, sigma `size` = radius in graph coords.
+		// Layout formula uses nodeSize as DIAMETER, so set radius = nodeSize/2.
+		// SELF_RADIUS = 20 matches the constant in hirogaruLayout.ts.
+		this.graph.setNodeAttribute(this.selfDid, 'size', 20)
+
 		for (let i = 0; i < orderedNodes.length; i++) {
 			if (i < count) {
 				this.graph.removeNodeAttribute(orderedNodes[i], 'hidden')
-				this.graph.setNodeAttribute(orderedNodes[i], 'size', nodeSize)
+				this.graph.setNodeAttribute(orderedNodes[i], 'size', nodeSize / 2)
 			} else {
 				this.graph.setNodeAttribute(orderedNodes[i], 'hidden', true)
 			}
@@ -148,6 +163,7 @@ export class SigmaController {
 
 		const targets = computeHirogaruPositions(this.graph, this.selfDid, count, nodeSize)
 		animateNodes(this.graph, targets, { duration, easing: 'cubicInOut' })
+		// Camera stays at ratio=1 (zoom/pan disabled in hirogaru mode)
 	}
 
 	getNodeData(nodeId: string): NodeData {
