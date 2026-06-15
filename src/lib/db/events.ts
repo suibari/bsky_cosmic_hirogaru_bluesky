@@ -24,7 +24,6 @@ export async function fetchEventsByDid(did: string, env: DbEnv): Promise<EventRe
 	const params = new URLSearchParams({
 		or:    `(actor_did.eq.${did},target_did.eq.${did})`,
 		order: 'created_at.desc',
-		limit: '500',
 	})
 
 	const res = await dbFetch(`/events?${params}`, env, {
