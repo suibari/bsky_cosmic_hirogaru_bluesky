@@ -7,7 +7,7 @@ const UA = 'cho-hirogaru-bluesky/suibari-cha.bsky.social'
 const PAGE_LIMIT = 100
 const MAX_PAGES = 3
 // 自分の投稿のうち、バックリンクを取得する最大件数（多いほど詳細だが遅くなる）
-const MAX_POSTS_FOR_BACKLINKS = 20
+const MAX_POSTS_FOR_BACKLINKS = 10
 
 // ---- スコア重み（ここを変えると全体のスコア計算に反映される） ----
 // follow はデータとして記録するがスコアには含めない
