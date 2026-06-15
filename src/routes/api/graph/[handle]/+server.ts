@@ -1,10 +1,20 @@
 import { json, error } from '@sveltejs/kit'
+import { dev } from '$app/environment'
 import type { RequestHandler } from './$types'
 import { hasEventsForDid, fetchEventsByDid, insertEvents, registerTrackedDid } from '$lib/db/events'
+import type { DbEnv } from '$lib/db/client'
 import { resolveHandle, fetchRawEvents, buildGraphDataFromEvents } from '$lib/graph/fetchGraphData'
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, platform }) => {
 	const handle = params.handle
+
+	const env: DbEnv = dev
+		? {
+			DB_API_URL:        process.env.DB_API_URL        ?? '',
+			CF_CLIENT_ID:      process.env.CF_CLIENT_ID      ?? '',
+			CF_CLIENT_SECRET:  process.env.CF_CLIENT_SECRET  ?? '',
+		}
+		: platform!.env
 
 	let selfDid: string
 	try {
@@ -13,17 +23,17 @@ export const GET: RequestHandler = async ({ params }) => {
 		throw error(404, 'Handle not found')
 	}
 
-	const cached = await hasEventsForDid(selfDid).catch(() => false)
+	const cached = await hasEventsForDid(selfDid, env).catch(() => false)
 
 	// アクセスのたびに追跡登録（重複はサーバー側で無視）
-	registerTrackedDid(selfDid).catch((err) => console.warn('[db] registerTrackedDid failed:', err))
+	registerTrackedDid(selfDid, env).catch((err) => console.warn('[db] registerTrackedDid failed:', err))
 
 	let rawEvents
 	if (cached) {
-		rawEvents = await fetchEventsByDid(selfDid)
+		rawEvents = await fetchEventsByDid(selfDid, env)
 	} else {
 		rawEvents = await fetchRawEvents(selfDid)
-		insertEvents(rawEvents).catch((err) => console.warn('[db] insert failed:', err))
+		insertEvents(rawEvents, env).catch((err) => console.warn('[db] insert failed:', err))
 	}
 
 	const graphData = await buildGraphDataFromEvents(selfDid, rawEvents)

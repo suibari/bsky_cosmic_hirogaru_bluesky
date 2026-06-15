@@ -12,6 +12,9 @@ declare global {
 					get(key: string): Promise<string | null>
 					put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
 				}
+				DB_API_URL: string
+				CF_CLIENT_ID: string
+				CF_CLIENT_SECRET: string
 			}
 		}
 	}

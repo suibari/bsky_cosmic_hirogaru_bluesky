@@ -1,17 +1,21 @@
-import { DB_API_URL, CF_CLIENT_ID, CF_CLIENT_SECRET } from '$env/dynamic/private'
+export interface DbEnv {
+	DB_API_URL: string
+	CF_CLIENT_ID: string
+	CF_CLIENT_SECRET: string
+}
 
-const BASE_URL = DB_API_URL
-const SCHEMA   = 'cosmic_hirogaru'
+const SCHEMA = 'cosmic_hirogaru'
 
 export async function dbFetch(
 	path: string,
+	env: DbEnv,
 	options: RequestInit = {}
 ): Promise<Response> {
-	const url = `${BASE_URL}${path}`
+	const url = `${env.DB_API_URL}${path}`
 
 	const headers: Record<string, string> = {
-		'CF-Access-Client-Id':     CF_CLIENT_ID,
-		'CF-Access-Client-Secret': CF_CLIENT_SECRET,
+		'CF-Access-Client-Id':     env.CF_CLIENT_ID,
+		'CF-Access-Client-Secret': env.CF_CLIENT_SECRET,
 		'Accept-Profile':          SCHEMA,
 		'Content-Profile':         SCHEMA,
 		'Content-Type':            'application/json',
