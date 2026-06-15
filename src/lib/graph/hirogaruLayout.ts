@@ -3,11 +3,13 @@ import type { GraphNodeAttributes } from '$lib/types'
 
 const RING_SPACING = 2.5
 const MIN_NODE_SPACING = 2.0
+const BASE_NODE_SIZE = 14
 
 export function computeHirogaruPositions(
 	graph: Graph<GraphNodeAttributes>,
 	selfDid: string,
-	displayCount?: number
+	displayCount?: number,
+	nodeSize: number = BASE_NODE_SIZE
 ): Record<string, { x: number; y: number }> {
 	const positions: Record<string, { x: number; y: number }> = {}
 	positions[selfDid] = { x: 0, y: 0 }
@@ -31,7 +33,8 @@ export function computeHirogaruPositions(
 
 	while (nodeIndex < others.length) {
 		const radius = ring * RING_SPACING
-		const capacity = Math.max(6, Math.floor((Math.PI * 2 * radius) / MIN_NODE_SPACING))
+		const effectiveSpacing = MIN_NODE_SPACING * (nodeSize / BASE_NODE_SIZE)
+		const capacity = Math.max(6, Math.floor((Math.PI * 2 * radius) / effectiveSpacing))
 		const inThisRing = Math.min(capacity, others.length - nodeIndex)
 
 		for (let i = 0; i < inThisRing; i++) {

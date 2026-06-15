@@ -17,16 +17,17 @@
 	let mode = $state<GraphMode>('cosmic')
 	let controller = $state<SigmaController | null>(null)
 	let displayCount = $state(0)
+	let displaySize = $state(14)
 	let tooltipNode = $state<NodeData | null>(null)
 	let tooltipX = $state(0)
 	let tooltipY = $state(0)
 
-	// Combined effect: re-runs when mode OR displayCount changes.
-	// setMode handles "same mode / different count" internally (no full re-init).
+	// Combined effect: re-runs when mode, displayCount, or displaySize changes.
+	// setMode handles "same mode / different params" internally (no full re-init).
 	$effect(() => {
 		if (!controller) return
 		const count = displayCount > 0 ? displayCount : controller.totalNodeCount
-		controller.setMode(mode, count)
+		controller.setMode(mode, count, displaySize)
 	})
 
 	onMount(() => {
@@ -154,22 +155,44 @@
 			</div>
 		{/if}
 
-		<!-- Node count slider (hirogaru mode only) -->
+		<!-- Sliders (hirogaru mode only) -->
 		{#if mode === 'hirogaru' && controller}
 			<div
-				class="pointer-events-auto absolute right-4 top-14 flex flex-col items-center gap-1 rounded-xl bg-white/20 px-2 py-3 backdrop-blur"
+				class="pointer-events-auto absolute right-4 top-14 flex flex-row items-stretch gap-3 rounded-xl bg-white/20 px-3 py-3 backdrop-blur"
 			>
-				<span class="text-xs font-mono font-semibold text-white">{displayCount}</span>
-				<input
-					type="range"
-					min="1"
-					max={controller.totalNodeCount}
-					bind:value={displayCount}
-					class="h-36 cursor-pointer accent-white"
-					style="writing-mode: vertical-lr; direction: rtl;"
-					aria-label="表示ノード数"
-				/>
-				<span class="text-xs text-white/60">1</span>
+				<!-- 人数スライダー -->
+				<div class="flex flex-col items-center gap-1">
+					<span class="text-xs font-mono font-semibold text-white">{displayCount}</span>
+					<input
+						type="range"
+						min="1"
+						max={controller.totalNodeCount}
+						bind:value={displayCount}
+						class="h-36 cursor-pointer accent-white"
+						style="writing-mode: vertical-lr; direction: rtl;"
+						aria-label="表示ノード数"
+					/>
+					<span class="text-xs text-white/60">1</span>
+					<span class="text-xs text-white/50">人数</span>
+				</div>
+				<!-- 区切り線 -->
+				<div class="w-px self-stretch bg-white/20"></div>
+				<!-- 大きさスライダー -->
+				<div class="flex flex-col items-center gap-1">
+					<span class="text-xs font-mono font-semibold text-white">{displaySize}</span>
+					<input
+						type="range"
+						min="6"
+						max="28"
+						step="1"
+						bind:value={displaySize}
+						class="h-36 cursor-pointer accent-white"
+						style="writing-mode: vertical-lr; direction: rtl;"
+						aria-label="ノードの大きさ"
+					/>
+					<span class="text-xs text-white/60">6</span>
+					<span class="text-xs text-white/50">大きさ</span>
+				</div>
 			</div>
 		{/if}
 

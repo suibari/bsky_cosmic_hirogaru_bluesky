@@ -9,6 +9,8 @@ import type { NodeData, GraphMode, GraphNodeAttributes, GraphEdgeAttributes } fr
 type SigmaInstance = Sigma
 type GraphInstance = Graph<GraphNodeAttributes, GraphEdgeAttributes>
 
+const HIROGARU_BASE_NODE_SIZE = 14
+
 function nodeSize(score: number): number {
 	return Math.max(8, Math.min(30, 8 + Math.log1p(score) * 3))
 }
@@ -79,7 +81,7 @@ export class SigmaController {
 
 	// When mode changes to 'hirogaru', displayCount controls how many nodes are shown.
 	// When called with the same mode (e.g. hirogaru→hirogaru), only display count updates.
-	setMode(mode: GraphMode, displayCount?: number): void {
+	setMode(mode: GraphMode, displayCount?: number, nodeSizeForHirogaru?: number): void {
 		const modeChanged = mode !== this.currentMode
 
 		if (modeChanged) {
@@ -88,6 +90,12 @@ export class SigmaController {
 			if (mode === 'cosmic') {
 				for (const node of this.graph.nodes()) {
 					this.graph.removeNodeAttribute(node, 'hidden')
+					const nd = this.graph.getNodeAttribute(node, 'nodeData')
+					this.graph.setNodeAttribute(
+						node,
+						'size',
+						node === this.selfDid ? 40 : nodeSize(nd.totalScore)
+					)
 				}
 				this.sigma.setSetting('edgeReducer', null)
 				this._snapToScoreRadius(1200)
@@ -99,11 +107,12 @@ export class SigmaController {
 
 		if (mode === 'hirogaru') {
 			const count = displayCount ?? this.totalNodeCount
-			this._applyHirogaru(count, modeChanged ? 800 : 300)
+			const size = nodeSizeForHirogaru ?? HIROGARU_BASE_NODE_SIZE
+			this._applyHirogaru(count, modeChanged ? 800 : 300, size)
 		}
 	}
 
-	private _applyHirogaru(count: number, duration: number): void {
+	private _applyHirogaru(count: number, duration: number, nodeSize = HIROGARU_BASE_NODE_SIZE): void {
 		const orderedNodes = this.graph
 			.nodes()
 			.filter((n) => n !== this.selfDid)
@@ -116,12 +125,13 @@ export class SigmaController {
 		for (let i = 0; i < orderedNodes.length; i++) {
 			if (i < count) {
 				this.graph.removeNodeAttribute(orderedNodes[i], 'hidden')
+				this.graph.setNodeAttribute(orderedNodes[i], 'size', nodeSize)
 			} else {
 				this.graph.setNodeAttribute(orderedNodes[i], 'hidden', true)
 			}
 		}
 
-		const targets = computeHirogaruPositions(this.graph, this.selfDid, count)
+		const targets = computeHirogaruPositions(this.graph, this.selfDid, count, nodeSize)
 		animateNodes(this.graph, targets, { duration, easing: 'cubicInOut' })
 	}
 
