@@ -108,6 +108,7 @@
 		let cancelled = false
 
 		loading = true
+		isFirstAccess = !localStorage.getItem(`hirogaru_v_${_handle}`)
 		error = null
 		tooltipNode = null
 		allEvents = []
@@ -120,17 +121,11 @@
 
 		async function init() {
 			try {
-				// pre-check: tracked_dids にあるか確認してからメインフェッチ
-				const checkRes = await fetch(`/api/graph/${encodeURIComponent(_handle)}/cached`)
-				if (!cancelled && checkRes.ok) {
-					const { cached } = await checkRes.json()
-					isFirstAccess = !cached
-				}
-
 				const res = await fetch(`/api/graph/${encodeURIComponent(_handle)}`)
 				if (!res.ok) throw new Error(`graph fetch failed: ${res.status}`)
 				const { nodes, selfDid, selfProfile, events } = await res.json()
 				if (cancelled) return
+				localStorage.setItem(`hirogaru_v_${_handle}`, '1')
 				loading = false
 
 				// Set up timeline state (follow events excluded — weight=0, not shown in tooltip)

@@ -51,13 +51,8 @@ export async function registerTrackedDid(did: string, env: DbEnv): Promise<void>
 }
 
 export async function isTrackedDid(did: string, env: DbEnv): Promise<boolean> {
-	const params = new URLSearchParams({
-		did:    `eq.${did}`,
-		select: 'did',
-		limit:  '1',
-	})
-
-	const res = await dbFetch(`/tracked_dids?${params}`, env, {
+	// URLSearchParams encodes colons in DID values (%3A), which PostgREST may not decode
+	const res = await dbFetch(`/tracked_dids?did=eq.${did}&select=did&limit=1`, env, {
 		headers: { 'Accept': 'application/json' },
 	})
 
