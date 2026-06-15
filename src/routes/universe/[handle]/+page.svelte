@@ -241,7 +241,7 @@
 		<!-- Timeline slider (top center) -->
 		{#if !loading && !error && timelineMax > timelineMin}
 			<div
-				class="pointer-events-auto absolute left-1/2 top-14 -translate-x-1/2 rounded-xl bg-black/40 px-3 py-2 backdrop-blur"
+				class="pointer-events-auto absolute left-1/2 top-3 -translate-x-1/2 rounded-xl bg-black/40 px-3 py-2 backdrop-blur"
 				style="width: min(calc(100vw - 220px), 380px);"
 			>
 				<input
@@ -265,6 +265,7 @@
 		{#if loading}
 			<div
 				class="pointer-events-auto absolute inset-0 flex flex-col items-center justify-center bg-black/80"
+				style="font-family: 'MaruMinya', sans-serif;"
 			>
 				<div class="mb-4 animate-pulse text-4xl">🌌</div>
 				<p class="text-lg text-white">宇宙を生成中...</p>
