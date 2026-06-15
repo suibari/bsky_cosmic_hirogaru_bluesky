@@ -45,6 +45,7 @@ function emptyNode(did: string): NodeData {
 		actorCounts: ZERO_COUNTS(),
 		targetCounts: ZERO_COUNTS(),
 		totalScore: 0,
+		targetScore: 0,
 		direction: 'actor'
 	}
 }
@@ -194,6 +195,13 @@ function computeScore(node: NodeData): number {
 	)
 }
 
+function computeTargetScore(node: NodeData): number {
+	return (Object.keys(WEIGHTS) as ScoredKind[]).reduce(
+		(sum, k) => sum + node.targetCounts[k] * WEIGHTS[k],
+		0
+	)
+}
+
 export async function fetchGraphData(handle: string): Promise<{
 	nodes: NodeData[]
 	selfDid: string
@@ -275,6 +283,7 @@ export async function fetchGraphData(handle: string): Promise<{
 	// スコア計算（follow は WEIGHTS に含まれないため自動的に除外）
 	for (const node of nodeMap.values()) {
 		node.totalScore = computeScore(node)
+		node.targetScore = computeTargetScore(node)
 	}
 
 	// スコア上位100件を取得

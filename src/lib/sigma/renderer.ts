@@ -2,7 +2,6 @@ import Sigma from 'sigma'
 import { animateNodes } from 'sigma/utils'
 import Graph from 'graphology'
 import { createNodeImageProgram } from '@sigma/node-image'
-import { startCosmicLayout, type FA2Instance } from '$lib/graph/cosmicLayout'
 import { computeHirogaruPositions } from '$lib/graph/hirogaruLayout'
 import type { NodeData, GraphMode, GraphNodeAttributes, GraphEdgeAttributes } from '$lib/types'
 
@@ -14,19 +13,18 @@ function nodeSize(score: number): number {
 	return Math.max(8, Math.min(30, 8 + Math.log1p(score) * 3))
 }
 
-function edgeColor(score: number, max: number): string {
-	const logT = max > 0 ? Math.sqrt(Math.log1p(score) / Math.log1p(max)) : 0
-	const r = Math.round(30 + logT * 80)
-	const g = Math.round(60 + logT * 120)
-	const b = Math.round(100 + logT * 155)
-	return `rgb(${r},${g},${b})`
+// Edge color is based on how much the OTHER person engages with you (targetScore).
+// High → opaque blue, 0 → very faint.
+function edgeColor(targetScore: number, maxTarget: number): string {
+	const t = maxTarget > 0 ? Math.sqrt(Math.log1p(targetScore) / Math.log1p(maxTarget)) : 0
+	const alpha = (0.05 + t * 0.80).toFixed(3)
+	return `rgba(120, 170, 255, ${alpha})`
 }
 
 export class SigmaController {
 	sigma: SigmaInstance
 	graph: GraphInstance
 	totalNodeCount: number
-	private fa2: FA2Instance | null = null
 	private selfDid: string
 	private currentMode: GraphMode = 'cosmic'
 
@@ -38,13 +36,15 @@ export class SigmaController {
 	}
 
 	startInitialLayout(): void {
-		this.fa2 = startCosmicLayout(this.graph, () => this._snapToScoreRadius())
+		// Skip FA2 entirely to avoid initial vibration.
+		// Apply golden-angle positions immediately (duration=0).
+		this._snapToScoreRadius(0)
 	}
 
-	// After FA2 distributes nodes angularly, snap each node's radius to reflect score.
+	// Place nodes at score-based radii using a golden-angle spiral.
 	// High score → close to center, low score → far.
-	private _snapToScoreRadius(): void {
-		// Sort by score so the golden-angle spiral places high-score nodes first.
+	// duration=0 means instantaneous (no animation = no vibration on load).
+	private _snapToScoreRadius(duration = 1200): void {
 		const others = this.graph
 			.nodes()
 			.filter((n) => n !== this.selfDid)
@@ -63,21 +63,18 @@ export class SigmaController {
 		positions[this.selfDid] = { x: 0, y: 0 }
 
 		const logMax = Math.log1p(maxScore)
-		// Golden angle ≈ 137.5° — the mathematically optimal angle for distributing
-		// points uniformly around a circle with no angular clustering.
+		// Golden angle ≈ 137.5° — optimal for uniform angular distribution with no clustering.
 		const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 
 		others.forEach((node, i) => {
 			const score = this.graph.getNodeAttribute(node, 'nodeData').totalScore
-			// sqrt(log1p) normalization: spreads low scores outward, compresses high scores
 			const logT = logMax > 0 ? Math.sqrt(Math.log1p(score) / logMax) : 0
 			const r = 2 + (1 - logT) * 14
-			// Golden angle spiral + small random jitter for organic look
 			const angle = i * GOLDEN_ANGLE + (Math.random() - 0.5) * 0.3
 			positions[node] = { x: Math.cos(angle) * r, y: Math.sin(angle) * r }
 		})
 
-		animateNodes(this.graph, positions, { duration: 1200, easing: 'cubicInOut' })
+		animateNodes(this.graph, positions, { duration, easing: 'cubicInOut' })
 	}
 
 	// When mode changes to 'hirogaru', displayCount controls how many nodes are shown.
@@ -89,18 +86,13 @@ export class SigmaController {
 			this.currentMode = mode
 
 			if (mode === 'cosmic') {
-				// Unhide all nodes before restarting FA2
 				for (const node of this.graph.nodes()) {
 					this.graph.removeNodeAttribute(node, 'hidden')
 				}
 				this.sigma.setSetting('edgeReducer', null)
-				this.fa2 = startCosmicLayout(this.graph, () => this._snapToScoreRadius())
+				this._snapToScoreRadius(1200)
 				return
 			} else {
-				if (this.fa2) {
-					this.fa2.stop()
-					this.fa2 = null
-				}
 				this.sigma.setSetting('edgeReducer', (_e, data) => ({ ...data, hidden: true }))
 			}
 		}
@@ -138,10 +130,6 @@ export class SigmaController {
 	}
 
 	kill(): void {
-		if (this.fa2) {
-			this.fa2.kill()
-			this.fa2 = null
-		}
 		this.sigma.kill()
 	}
 }
@@ -154,7 +142,7 @@ export function initSigma(
 ): SigmaController {
 	const graph = new Graph<GraphNodeAttributes, GraphEdgeAttributes>()
 
-	const maxScore = nodes.length > 0 ? nodes[0].totalScore : 1
+	const maxTargetScore = nodes.length > 0 ? Math.max(...nodes.map((n) => n.targetScore)) : 1
 
 	const selfNodeData: NodeData = {
 		did: selfDid,
@@ -164,6 +152,7 @@ export function initSigma(
 		actorCounts: { like: 0, repost: 0, reply: 0, quote: 0, mention: 0, follow: 0 },
 		targetCounts: { like: 0, repost: 0, reply: 0, quote: 0, mention: 0, follow: 0 },
 		totalScore: 0,
+		targetScore: 0,
 		direction: 'actor'
 	}
 
@@ -182,10 +171,7 @@ export function initSigma(
 	})
 
 	for (const [i, node] of nodes.entries()) {
-		// Uniform start radius: FA2 distributes nodes angularly, then _snapToScoreRadius
-		// animates them to score-based radii after FA2 stops.
-		// Small angle jitter breaks symmetry to prevent synchronized oscillation.
-		const angle = (i / Math.max(nodes.length, 1)) * Math.PI * 2 + (Math.random() - 0.5) * 0.3
+		const angle = (i / Math.max(nodes.length, 1)) * Math.PI * 2
 		const r = 8
 
 		graph.addNode(node.did, {
@@ -202,8 +188,8 @@ export function initSigma(
 			nodeData: node
 		})
 		graph.addEdge(selfDid, node.did, {
-			weight: node.totalScore,
-			color: edgeColor(node.totalScore, maxScore),
+			weight: 1,
+			color: edgeColor(node.targetScore, maxTargetScore),
 			hidden: false
 		})
 	}
@@ -215,6 +201,7 @@ export function initSigma(
 		nodeHoverProgramClasses: { image: NodeImageProgram },
 		defaultNodeType: 'image',
 		defaultEdgeType: 'line',
+		defaultEdgeSize: 1.5,
 		renderEdgeLabels: false,
 		labelFont: 'system-ui, sans-serif',
 		labelSize: 12,

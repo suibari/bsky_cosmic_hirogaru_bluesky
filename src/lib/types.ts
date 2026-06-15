@@ -11,6 +11,7 @@ export type NodeData = {
 	actorCounts: InteractionCounts   // 自分 → 相手
 	targetCounts: InteractionCounts  // 相手 → 自分
 	totalScore: number
+	targetScore: number
 	direction: 'actor' | 'target' | 'both'
 }
 
