@@ -156,11 +156,14 @@ export class SigmaController {
 				this._snapToScoreRadius(1200)
 				return
 			} else {
+				// ひろがるモードへの移行時は、カメラ操作を無効化する前にカメラ状態を初期位置にリセットする。
+				// Sigma.jsのカメラはenabled*がfalseだとsetState/animateが無視されるため、
+				// リセットを先に行う必要がある。
+				this.sigma.getCamera().setState({ x: 0.5, y: 0.5, ratio: 1, angle: 0 })
 				this.sigma.setSetting('itemSizesReference', 'positions')
 				this.sigma.setSetting('enableCameraZooming', false)
 				this.sigma.setSetting('enableCameraPanning', false)
 				this.sigma.setSetting('enableCameraRotation', false)
-				this.sigma.getCamera().animate({ ratio: 1 }, { duration: 800 })
 				this.sigma.setSetting('edgeReducer', (_e, data) => ({ ...data, hidden: true }))
 				this.sigma.setSetting('nodeReducer', (_n, data) => ({ ...data, label: '' }))
 			}
@@ -207,7 +210,6 @@ export class SigmaController {
 		}
 
 		animateNodes(this.graph, targets, { duration, easing: 'cubicInOut' })
-		// Camera stays at ratio=1 (zoom/pan disabled in hirogaru mode)
 	}
 
 	updateNodes(nodes: NodeData[], mode: GraphMode, displayCount: number, nodeSizeForHirogaru: number): void {

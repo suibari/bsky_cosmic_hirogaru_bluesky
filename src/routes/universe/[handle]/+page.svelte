@@ -222,7 +222,7 @@
 			>
 				← 戻る
 			</button>
-			<span class="rounded bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur" style="font-family: 'MaruMinya', sans-serif;">
+			<span class="rounded bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur max-w-[150px] sm:max-w-none truncate" style="font-family: 'MaruMinya', sans-serif;">
 				@{handle}
 			</span>
 			<div class="ml-auto flex overflow-hidden rounded">
@@ -232,7 +232,7 @@
 					style:background={mode === 'cosmic' ? '#4338ca' : 'rgba(0,0,0,0.4)'}
 					style:color={mode === 'cosmic' ? '#fff' : 'rgba(255,255,255,0.6)'}
 				>
-					🌌 コズミック
+					<span>🌌</span><span class="hidden sm:inline"> コズミック</span>
 				</button>
 				<button
 					onclick={() => (mode = 'hirogaru')}
@@ -240,7 +240,7 @@
 					style:background={mode === 'hirogaru' ? '#0ea5e9' : 'rgba(0,0,0,0.4)'}
 					style:color={mode === 'hirogaru' ? '#fff' : 'rgba(255,255,255,0.6)'}
 				>
-					🔵 ひろがる
+					<span>🔵</span><span class="hidden sm:inline"> ひろがる</span>
 				</button>
 			</div>
 		</div>
