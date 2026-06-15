@@ -205,6 +205,36 @@ function computeTargetScore(node: NodeData): number {
 	)
 }
 
+export function buildNodesFromEventsSync(
+	selfDid: string,
+	events: EventRecord[],
+	profileCache: Map<string, ProfileInfo>
+): NodeData[] {
+	const nodeMap = new Map<string, NodeData>()
+
+	for (const event of events) {
+		if (event.actor_did === selfDid && event.target_did !== selfDid) {
+			addCount(nodeMap, event.target_did, event.kind as InteractionKind, 'actor')
+		}
+		if (event.target_did === selfDid && event.actor_did !== selfDid) {
+			addCount(nodeMap, event.actor_did, event.kind as InteractionKind, 'target')
+		}
+	}
+
+	for (const node of nodeMap.values()) {
+		node.totalScore = computeScore(node)
+		node.targetScore = computeTargetScore(node)
+		const profile = profileCache.get(node.did)
+		if (profile) {
+			node.handle = profile.handle
+			node.displayName = profile.displayName
+			node.avatarUrl = profile.avatarUrl
+		}
+	}
+
+	return [...nodeMap.values()].sort((a, b) => b.totalScore - a.totalScore)
+}
+
 export async function fetchRawEvents(selfDid: string): Promise<EventRecord[]> {
 	const pdsUrl = await resolvePds(selfDid)
 	const now = new Date().toISOString()

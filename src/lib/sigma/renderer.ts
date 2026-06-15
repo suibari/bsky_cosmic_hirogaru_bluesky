@@ -91,7 +91,7 @@ export class SigmaController {
 	private _snapToScoreRadius(duration = 1200): void {
 		const others = this.graph
 			.nodes()
-			.filter((n) => n !== this.selfDid)
+			.filter((n) => n !== this.selfDid && !this.graph.getNodeAttribute(n, 'hidden'))
 			.sort(
 				(a, b) =>
 					this.graph.getNodeAttribute(b, 'nodeData').totalScore -
@@ -117,6 +117,13 @@ export class SigmaController {
 			const angle = i * GOLDEN_ANGLE + (Math.random() - 0.5) * 0.3
 			positions[node] = { x: Math.cos(angle) * r, y: Math.sin(angle) * r }
 		})
+
+		// Collapse hidden nodes to center so they don't inflate bounding box.
+		for (const n of this.graph.nodes()) {
+			if (n !== this.selfDid && this.graph.getNodeAttribute(n, 'hidden')) {
+				positions[n] = { x: 0, y: 0 }
+			}
+		}
 
 		animateNodes(this.graph, positions, { duration, easing: 'cubicInOut' })
 	}
@@ -199,6 +206,38 @@ export class SigmaController {
 
 		animateNodes(this.graph, targets, { duration, easing: 'cubicInOut' })
 		// Camera stays at ratio=1 (zoom/pan disabled in hirogaru mode)
+	}
+
+	updateNodes(nodes: NodeData[], mode: GraphMode, displayCount: number, nodeSizeForHirogaru: number): void {
+		const scoreMap = new Map(nodes.map((n) => [n.did, n]))
+		const maxTarget = nodes.length > 0 ? Math.max(...nodes.map((n) => n.targetScore)) : 1
+
+		for (const n of this.graph.nodes()) {
+			if (n === this.selfDid) continue
+			const updated = scoreMap.get(n)
+			if (!updated || updated.totalScore === 0) {
+				this.graph.setNodeAttribute(n, 'hidden', true)
+				const nd = this.graph.getNodeAttribute(n, 'nodeData')
+				this.graph.setNodeAttribute(n, 'nodeData', { ...nd, totalScore: 0, targetScore: 0 })
+			} else {
+				this.graph.removeNodeAttribute(n, 'hidden')
+				this.graph.setNodeAttribute(n, 'nodeData', updated)
+				if (mode === 'cosmic') {
+					this.graph.setNodeAttribute(n, 'size', nodeSize(updated.totalScore))
+				}
+			}
+			// Update edge color for this node
+			for (const edge of this.graph.edges(n)) {
+				const targetScore = updated?.targetScore ?? 0
+				this.graph.setEdgeAttribute(edge, 'color', edgeColor(targetScore, maxTarget))
+			}
+		}
+
+		if (mode === 'cosmic') {
+			this._snapToScoreRadius(400)
+		} else if (mode === 'hirogaru') {
+			this._applyHirogaru(displayCount, 400, nodeSizeForHirogaru)
+		}
 	}
 
 	getNodeData(nodeId: string): NodeData {

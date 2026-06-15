@@ -3,7 +3,8 @@
 	import { goto } from '$app/navigation'
 	import { initSigma, type SigmaController } from '$lib/sigma/renderer'
 	import { Starfield } from '$lib/sigma/starfield'
-	import type { GraphMode, NodeData } from '$lib/types'
+	import { buildNodesFromEventsSync, type ProfileInfo } from '$lib/graph/fetchGraphData'
+	import type { GraphMode, NodeData, EventRecord } from '$lib/types'
 
 	const handle = $derived($page.params.handle ?? '')
 
@@ -21,6 +22,19 @@
 	let tooltipY = $state(0)
 	let hideTooltipTimeout: ReturnType<typeof setTimeout> | null = null
 	let shareStatus = $state<'idle' | 'capturing' | 'uploading' | 'done' | 'error'>('idle')
+
+	// Timeline state
+	let allEvents = $state<EventRecord[]>([])
+	let currentSelfDid = $state('')
+	let profileCache = $state(new Map<string, ProfileInfo>())
+	let timelineMin = $state(0)
+	let timelineMax = $state(0)
+	let timelineValue = $state(0)   // committed value — triggers graph update on release
+	let timelineDisplay = $state(0) // live value — updates on drag for real-time date label
+
+	function formatTimelineDate(ms: number): string {
+		return new Date(ms).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
+	}
 
 	// Persist slider values to localStorage
 	$effect(() => {
@@ -70,12 +84,19 @@
 		}
 	}
 
-	// Combined effect: re-runs when mode, displayCount, or displaySize changes.
-	// setMode handles "same mode / different params" internally (no full re-init).
+	// Combined effect: re-runs when mode, displayCount, displaySize, or timelineValue changes.
+	// When timeline is at max, delegate entirely to setMode.
+	// When timeline is active (past), setMode resets state then updateNodes re-applies the filter.
 	$effect(() => {
 		if (!controller) return
 		const count = displayCount > 0 ? displayCount : controller.totalNodeCount
 		controller.setMode(mode, count, displaySize)
+		if (timelineValue > 0 && timelineValue < timelineMax && allEvents.length > 0) {
+			const cutoff = new Date(timelineValue).toISOString()
+			const filtered = allEvents.filter((e) => e.created_at <= cutoff)
+			const newNodes = buildNodesFromEventsSync(currentSelfDid, filtered, profileCache)
+			controller.updateNodes(newNodes, mode, count, displaySize)
+		}
 	})
 
 	$effect(() => {
@@ -88,15 +109,34 @@
 		loading = true
 		error = null
 		tooltipNode = null
+		allEvents = []
+		timelineMin = 0
+		timelineMax = 0
+		timelineValue = 0
+		timelineDisplay = 0
 		cancelHideTooltip()
 
 		async function init() {
 			try {
 				const res = await fetch(`/api/graph/${encodeURIComponent(_handle)}`)
 				if (!res.ok) throw new Error(`graph fetch failed: ${res.status}`)
-				const { nodes, selfDid, selfProfile } = await res.json()
+				const { nodes, selfDid, selfProfile, events } = await res.json()
 				if (cancelled) return
 				loading = false
+
+				// Set up timeline state
+				allEvents = events ?? []
+				currentSelfDid = selfDid
+				profileCache = new Map(nodes.map((n: NodeData) => [n.did, {
+					did: n.did, handle: n.handle, displayName: n.displayName, avatarUrl: n.avatarUrl
+				}]))
+				if (allEvents.length > 0) {
+					const timestamps = allEvents.map((e) => new Date(e.created_at).getTime())
+					timelineMin = Math.min(...timestamps)
+					timelineMax = Math.max(...timestamps)
+					timelineValue = timelineMax
+					timelineDisplay = timelineMax
+				}
 
 				starfield = new Starfield(starfieldEl)
 				starfield.start()
@@ -197,6 +237,29 @@
 				</button>
 			</div>
 		</div>
+
+		<!-- Timeline slider (top center) -->
+		{#if !loading && !error && timelineMax > timelineMin}
+			<div
+				class="pointer-events-auto absolute left-1/2 top-14 -translate-x-1/2 rounded-xl bg-black/40 px-3 py-2 backdrop-blur"
+				style="width: min(calc(100vw - 220px), 380px);"
+			>
+				<input
+					type="range"
+					min={timelineMin}
+					max={timelineMax}
+					bind:value={timelineDisplay}
+					onchange={() => { timelineValue = timelineDisplay }}
+					class="w-full cursor-pointer accent-white"
+					aria-label="タイムライン"
+				/>
+				<div class="flex justify-between text-xs text-white/60">
+					<span>{formatTimelineDate(timelineMin)}</span>
+					<span class="font-semibold text-white">{formatTimelineDate(timelineDisplay)}</span>
+					<span>{formatTimelineDate(timelineMax)}</span>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Loading overlay -->
 		{#if loading}
