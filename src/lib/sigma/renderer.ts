@@ -15,12 +15,27 @@ function nodeSize(score: number): number {
 	return Math.max(8, Math.min(30, 8 + Math.log1p(score) * 3))
 }
 
-// Edge color is based on how much the OTHER person engages with you (targetScore).
-// High → opaque blue, 0 → very faint.
+// Edge color heatmap based on target engagement (how much THEY interact with you).
+// Blue (low) → Purple → Magenta → Gold (high), cosmic nebula palette.
+const EDGE_COLOR_STOPS = [
+	{ t: 0.00, r: 120, g: 170, b: 255 }, // blue   (no engagement)
+	{ t: 0.40, r: 147, g:  51, b: 234 }, // purple
+	{ t: 0.70, r: 236, g:  72, b: 153 }, // magenta
+	{ t: 1.00, r: 251, g: 191, b:  36 }, // gold   (max engagement)
+]
+
 function edgeColor(targetScore: number, maxTarget: number): string {
 	const t = maxTarget > 0 ? Math.sqrt(Math.log1p(targetScore) / Math.log1p(maxTarget)) : 0
-	const alpha = (0.05 + t * 0.80).toFixed(3)
-	return `rgba(120, 170, 255, ${alpha})`
+	let i = EDGE_COLOR_STOPS.length - 2
+	for (let j = 0; j < EDGE_COLOR_STOPS.length - 1; j++) {
+		if (t <= EDGE_COLOR_STOPS[j + 1].t) { i = j; break }
+	}
+	const s0 = EDGE_COLOR_STOPS[i], s1 = EDGE_COLOR_STOPS[i + 1]
+	const lt = (t - s0.t) / (s1.t - s0.t)
+	const r = Math.round(s0.r + lt * (s1.r - s0.r))
+	const g = Math.round(s0.g + lt * (s1.g - s0.g))
+	const b = Math.round(s0.b + lt * (s1.b - s0.b))
+	return `rgb(${r}, ${g}, ${b})`
 }
 
 export class SigmaController {
