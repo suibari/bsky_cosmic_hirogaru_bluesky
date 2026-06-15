@@ -87,13 +87,13 @@
 	}
 
 	// Combined effect: re-runs when mode, displayCount, displaySize, or timelineValue changes.
-	// When timeline is at max, delegate entirely to setMode.
-	// When timeline is active (past), setMode resets state then updateNodes re-applies the filter.
+	// Always call updateNodes when events exist — including when returning to max — so that
+	// nodes hidden by a past filter are properly restored.
 	$effect(() => {
 		if (!controller) return
 		const count = displayCount > 0 ? displayCount : controller.totalNodeCount
 		controller.setMode(mode, count, displaySize)
-		if (timelineValue > 0 && timelineValue < timelineMax && allEvents.length > 0) {
+		if (timelineValue > 0 && allEvents.length > 0) {
 			const filtered = allEvents.filter((_, i) => allEventsMs[i] <= timelineValue)
 			const newNodes = buildNodesFromEventsSync(currentSelfDid, filtered, profileCache)
 			controller.updateNodes(newNodes, mode, count, displaySize)
