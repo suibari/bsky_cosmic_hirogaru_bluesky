@@ -1,5 +1,5 @@
 import { extractDid } from './atUriUtils'
-import type { NodeData } from '$lib/types'
+import type { NodeData, EventRecord } from '$lib/types'
 
 const BSKY_BASE = 'https://public.api.bsky.app/xrpc'
 const CONSTELLATION_BASE = 'https://constellation.microcosm.blue/xrpc'
@@ -50,7 +50,7 @@ function emptyNode(did: string): NodeData {
 	}
 }
 
-async function resolveHandle(handle: string): Promise<string> {
+export async function resolveHandle(handle: string): Promise<string> {
 	const res = await fetch(
 		`${BSKY_BASE}/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
 	)
@@ -112,28 +112,28 @@ async function listAllRecords(pdsUrl: string, did: string, collection: string): 
 	return records
 }
 
-// Query Constellation for a single post URI + source combination
 async function queryConstellation(
 	postUri: string,
 	source: string,
 	kind: InteractionKind
-): Promise<Array<{ src_did: string; kind: InteractionKind }>> {
-	const params = new URLSearchParams({
-		subject: postUri,
-		source,
-		limit: '100'
-	})
+): Promise<Array<{ src_did: string; kind: InteractionKind; created_at: string }>> {
+	const now = new Date().toISOString()
+	const params = new URLSearchParams({ subject: postUri, source, limit: '100' })
 	const url = `${CONSTELLATION_BASE}/blue.microcosm.links.getBacklinks?${params}`
 	const res = await fetch(url, { headers: { 'User-Agent': UA } })
 	if (!res.ok) return []
 	const data = await res.json()
 	return (data.records ?? [])
-		.map((l: { did?: string }) => ({ src_did: l.did ?? '', kind }))
+		.map((l: { did?: string; created_at?: string }) => ({
+			src_did: l.did ?? '',
+			kind,
+			created_at: l.created_at ?? now
+		}))
 		.filter((e: { src_did: string }) => e.src_did)
 }
 
-// Get followers via Constellation (follow records link to DIDs directly)
-async function getFollowers(did: string): Promise<string[]> {
+async function getFollowers(did: string): Promise<Array<{ did: string; created_at: string }>> {
+	const now = new Date().toISOString()
 	const params = new URLSearchParams({
 		subject: encodeURIComponent(did),
 		source: 'app.bsky.graph.follow:subject',
@@ -148,8 +148,11 @@ async function getFollowers(did: string): Promise<string[]> {
 	}
 	const data = await res.json()
 	return (data.records ?? [])
-		.map((l: { did?: string }) => l.did)
-		.filter((d: string | undefined): d is string => !!d && d !== did)
+		.map((l: { did?: string; created_at?: string }) => ({
+			did: l.did ?? '',
+			created_at: l.created_at ?? now
+		}))
+		.filter((e: { did: string }) => e.did && e.did !== did)
 }
 
 async function getProfiles(dids: string[]): Promise<ProfileInfo[]> {
@@ -202,16 +205,11 @@ function computeTargetScore(node: NodeData): number {
 	)
 }
 
-export async function fetchGraphData(handle: string): Promise<{
-	nodes: NodeData[]
-	selfDid: string
-	selfProfile: ProfileInfo
-}> {
-	const selfDid = await resolveHandle(handle)
-	const [selfProfile, pdsUrl] = await Promise.all([getProfile(selfDid), resolvePds(selfDid)])
+export async function fetchRawEvents(selfDid: string): Promise<EventRecord[]> {
+	const pdsUrl = await resolvePds(selfDid)
+	const now = new Date().toISOString()
 
-	// 自分のアクション（outgoing）+ フォロワー取得
-	const [likeRecords, repostRecords, followRecords, postRecords, followerDids] = await Promise.all([
+	const [likeRecords, repostRecords, followRecords, postRecords, followerResults] = await Promise.all([
 		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.like'),
 		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.repost'),
 		listAllRecords(pdsUrl, selfDid, 'app.bsky.graph.follow'),
@@ -219,52 +217,74 @@ export async function fetchGraphData(handle: string): Promise<{
 		getFollowers(selfDid)
 	])
 
-	const nodeMap = new Map<string, NodeData>()
+	const events: EventRecord[] = []
 
-	// 自分がいいねした投稿の著者
 	for (const r of likeRecords) {
 		const uri = (r.value as { subject?: { uri?: string } }).subject?.uri
 		if (!uri) continue
 		const did = extractDid(uri)
-		if (did && did !== selfDid) addCount(nodeMap, did, 'like', 'actor')
+		if (did && did !== selfDid) events.push({
+			actor_did: selfDid,
+			target_did: did,
+			kind: 'like',
+			rkey: r.uri.split('/').at(-1) ?? null,
+			created_at: (r.value as { createdAt?: string }).createdAt ?? now
+		})
 	}
 
-	// 自分がリポストした投稿の著者
 	for (const r of repostRecords) {
 		const uri = (r.value as { subject?: { uri?: string } }).subject?.uri
 		if (!uri) continue
 		const did = extractDid(uri)
-		if (did && did !== selfDid) addCount(nodeMap, did, 'repost', 'actor')
+		if (did && did !== selfDid) events.push({
+			actor_did: selfDid,
+			target_did: did,
+			kind: 'repost',
+			rkey: r.uri.split('/').at(-1) ?? null,
+			created_at: (r.value as { createdAt?: string }).createdAt ?? now
+		})
 	}
 
-	// 自分がリプライした投稿の著者（reply.parent.uri からDIDを抽出）
 	for (const r of postRecords) {
 		const parentUri = (r.value as { reply?: { parent?: { uri?: string } } }).reply?.parent?.uri
 		if (!parentUri) continue
 		const did = extractDid(parentUri)
-		if (did && did !== selfDid) addCount(nodeMap, did, 'reply', 'actor')
+		if (did && did !== selfDid) events.push({
+			actor_did: selfDid,
+			target_did: did,
+			kind: 'reply',
+			rkey: r.uri.split('/').at(-1) ?? null,
+			created_at: (r.value as { createdAt?: string }).createdAt ?? now
+		})
 	}
 
-	// 自分がフォローしているユーザー
 	for (const r of followRecords) {
 		const subject = (r.value as { subject?: string }).subject
-		if (subject && subject !== selfDid) addCount(nodeMap, subject, 'follow', 'actor')
+		if (subject && subject !== selfDid) events.push({
+			actor_did: selfDid,
+			target_did: subject,
+			kind: 'follow',
+			rkey: r.uri.split('/').at(-1) ?? null,
+			created_at: (r.value as { createdAt?: string }).createdAt ?? now
+		})
 	}
 
-	// 自分をフォローしているユーザー（Constellation経由）
-	for (const did of followerDids) {
-		addCount(nodeMap, did, 'follow', 'target')
+	for (const { did, created_at } of followerResults) {
+		events.push({
+			actor_did: did,
+			target_did: selfDid,
+			kind: 'follow',
+			rkey: null,
+			created_at
+		})
 	}
 
-	// 自分の投稿への like/repost/reply を Constellation でバッチ取得
-	// リプライを除いた投稿を対象にする
 	const ownPostUris = postRecords
 		.filter((r) => !(r.value as { reply?: unknown }).reply)
 		.slice(0, MAX_POSTS_FOR_BACKLINKS)
 		.map((r) => r.uri)
 
 	if (ownPostUris.length > 0) {
-		// 各投稿 × 3種類のソースを並列クエリ
 		const allPostInteractions = await Promise.all(
 			ownPostUris.flatMap((uri) => [
 				queryConstellation(uri, 'app.bsky.feed.like:subject.uri', 'like'),
@@ -274,22 +294,44 @@ export async function fetchGraphData(handle: string): Promise<{
 		)
 
 		for (const interactions of allPostInteractions) {
-			for (const { src_did, kind } of interactions) {
-				if (src_did !== selfDid) addCount(nodeMap, src_did, kind, 'target')
+			for (const { src_did, kind, created_at } of interactions) {
+				if (src_did !== selfDid) events.push({
+					actor_did: src_did,
+					target_did: selfDid,
+					kind,
+					rkey: null,
+					created_at
+				})
 			}
 		}
 	}
 
-	// スコア計算（follow は WEIGHTS に含まれないため自動的に除外）
+	return events
+}
+
+export async function buildGraphDataFromEvents(
+	selfDid: string,
+	events: EventRecord[]
+): Promise<{ nodes: NodeData[]; selfDid: string; selfProfile: ProfileInfo }> {
+	const selfProfile = await getProfile(selfDid)
+	const nodeMap = new Map<string, NodeData>()
+
+	for (const event of events) {
+		if (event.actor_did === selfDid && event.target_did !== selfDid) {
+			addCount(nodeMap, event.target_did, event.kind as InteractionKind, 'actor')
+		}
+		if (event.target_did === selfDid && event.actor_did !== selfDid) {
+			addCount(nodeMap, event.actor_did, event.kind as InteractionKind, 'target')
+		}
+	}
+
 	for (const node of nodeMap.values()) {
 		node.totalScore = computeScore(node)
 		node.targetScore = computeTargetScore(node)
 	}
 
-	// スコア上位100件を取得
 	const sorted = [...nodeMap.values()].sort((a, b) => b.totalScore - a.totalScore).slice(0, 100)
 
-	// プロフィール解決
 	const profiles = await getProfiles(sorted.map((n) => n.did))
 	const profileMap = new Map(profiles.map((p) => [p.did, p]))
 	for (const node of sorted) {

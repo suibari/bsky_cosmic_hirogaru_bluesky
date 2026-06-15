@@ -35,3 +35,11 @@ export type GraphEdgeAttributes = {
 	color: string
 	hidden?: boolean
 }
+
+export type EventRecord = {
+	actor_did:  string
+	target_did: string
+	kind:       'like' | 'repost' | 'reply' | 'quote' | 'follow' | 'mention'
+	rkey:       string | null
+	created_at: string
+}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores'
 	import { goto } from '$app/navigation'
-	import { fetchGraphData } from '$lib/graph/fetchGraphData'
 	import { initSigma, type SigmaController } from '$lib/sigma/renderer'
 	import { Starfield } from '$lib/sigma/starfield'
 	import type { GraphMode, NodeData } from '$lib/types'
@@ -93,7 +92,9 @@
 
 		async function init() {
 			try {
-				const { nodes, selfDid, selfProfile } = await fetchGraphData(_handle)
+				const res = await fetch(`/api/graph/${encodeURIComponent(_handle)}`)
+				if (!res.ok) throw new Error(`graph fetch failed: ${res.status}`)
+				const { nodes, selfDid, selfProfile } = await res.json()
 				if (cancelled) return
 				loading = false
 
