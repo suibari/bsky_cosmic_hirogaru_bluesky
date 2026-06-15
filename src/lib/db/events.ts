@@ -50,14 +50,14 @@ export async function registerTrackedDid(did: string, env: DbEnv): Promise<void>
 	}
 }
 
-export async function hasEventsForDid(did: string, env: DbEnv): Promise<boolean> {
+export async function isTrackedDid(did: string, env: DbEnv): Promise<boolean> {
 	const params = new URLSearchParams({
-		or:     `(actor_did.eq.${did},target_did.eq.${did})`,
+		did:    `eq.${did}`,
+		select: 'did',
 		limit:  '1',
-		select: 'id',
 	})
 
-	const res = await dbFetch(`/events?${params}`, env, {
+	const res = await dbFetch(`/tracked_dids?${params}`, env, {
 		headers: { 'Accept': 'application/json' },
 	})
 

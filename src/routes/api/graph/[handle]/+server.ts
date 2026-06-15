@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit'
 import { dev } from '$app/environment'
 import type { RequestHandler } from './$types'
-import { hasEventsForDid, fetchEventsByDid, insertEvents, registerTrackedDid } from '$lib/db/events'
+import { isTrackedDid, fetchEventsByDid, insertEvents, registerTrackedDid } from '$lib/db/events'
 import type { DbEnv } from '$lib/db/client'
 import { resolveHandle, fetchRawEvents, buildGraphDataFromEvents } from '$lib/graph/fetchGraphData'
 
@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 		throw error(404, 'Handle not found')
 	}
 
-	const cached = await hasEventsForDid(selfDid, env).catch(() => false)
+	const cached = await isTrackedDid(selfDid, env).catch(() => false)
 
 	// アクセスのたびに追跡登録（重複はサーバー側で無視）
 	registerTrackedDid(selfDid, env).catch((err) => console.warn('[db] registerTrackedDid failed:', err))
