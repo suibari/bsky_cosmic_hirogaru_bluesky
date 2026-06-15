@@ -1,4 +1,4 @@
-import { DB_API_URL, CF_CLIENT_ID, CF_CLIENT_SECRET } from '$env/static/private'
+import { DB_API_URL, CF_CLIENT_ID, CF_CLIENT_SECRET } from '$env/dynamic/private'
 
 const BASE_URL = DB_API_URL
 const SCHEMA   = 'cosmic_hirogaru'
