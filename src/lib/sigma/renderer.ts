@@ -18,7 +18,7 @@ function nodeSize(score: number): number {
 // Edge color heatmap based on target engagement (how much THEY interact with you).
 // Blue (low) → Purple → Magenta → Gold (high), cosmic nebula palette.
 const EDGE_COLOR_STOPS = [
-	{ t: 0.00, r: 120, g: 170, b: 255 }, // blue   (no engagement)
+	{ t: 0.00, r:  25, g:  35, b:  70 }, // dark navy (no engagement, barely visible)
 	{ t: 0.40, r: 147, g:  51, b: 234 }, // purple
 	{ t: 0.70, r: 236, g:  72, b: 153 }, // magenta
 	{ t: 1.00, r: 251, g: 191, b:  36 }, // gold   (max engagement)
