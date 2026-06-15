@@ -22,6 +22,7 @@
 	let tooltipY = $state(0)
 	let hideTooltipTimeout: ReturnType<typeof setTimeout> | null = null
 	let shareStatus = $state<'idle' | 'capturing' | 'uploading' | 'done' | 'error'>('idle')
+	let isFirstAccess = $state(false)
 
 	// Timeline state
 	let allEvents = $state<EventRecord[]>([])
@@ -107,6 +108,10 @@
 		let cancelled = false
 
 		loading = true
+		if (!localStorage.getItem('hirogaru_visited')) {
+			isFirstAccess = true
+			localStorage.setItem('hirogaru_visited', '1')
+		}
 		error = null
 		tooltipNode = null
 		allEvents = []
@@ -124,6 +129,7 @@
 				const { nodes, selfDid, selfProfile, events } = await res.json()
 				if (cancelled) return
 				loading = false
+				isFirstAccess = false
 
 				// Set up timeline state (follow events excluded — weight=0, not shown in tooltip)
 				allEvents = (events ?? []).filter((e: EventRecord) => e.kind !== 'follow')
@@ -271,6 +277,10 @@
 				<div class="mb-4 animate-pulse text-4xl">🌌</div>
 				<p class="text-lg text-white">宇宙を生成中...</p>
 				<p class="mt-2 text-sm text-zinc-400">@{handle} のデータを取得しています</p>
+				{#if isFirstAccess}
+					<p class="mt-4 text-sm text-yellow-300">初回アクセスなので20秒くらい時間がかかるかも…</p>
+					<p class="mt-1 text-sm text-zinc-400">次回からは高速アクセスできます！</p>
+				{/if}
 			</div>
 		{/if}
 
