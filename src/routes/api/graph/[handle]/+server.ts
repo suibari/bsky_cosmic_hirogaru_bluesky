@@ -37,5 +37,5 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 	}
 
 	const graphData = await buildGraphDataFromEvents(selfDid, rawEvents)
-	return json({ ...graphData, events: rawEvents })
+	return json({ ...graphData, events: rawEvents, cached })
 }
