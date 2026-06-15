@@ -25,6 +25,7 @@
 
 	// Timeline state
 	let allEvents = $state<EventRecord[]>([])
+	let allEventsMs = $state<number[]>([])   // pre-computed ms timestamps, parallel to allEvents
 	let currentSelfDid = $state('')
 	let profileCache = $state(new Map<string, ProfileInfo>())
 	let timelineMin = $state(0)
@@ -92,8 +93,7 @@
 		const count = displayCount > 0 ? displayCount : controller.totalNodeCount
 		controller.setMode(mode, count, displaySize)
 		if (timelineValue > 0 && timelineValue < timelineMax && allEvents.length > 0) {
-			const cutoff = new Date(timelineValue).toISOString()
-			const filtered = allEvents.filter((e) => e.created_at <= cutoff)
+			const filtered = allEvents.filter((_, i) => allEventsMs[i] <= timelineValue)
 			const newNodes = buildNodesFromEventsSync(currentSelfDid, filtered, profileCache)
 			controller.updateNodes(newNodes, mode, count, displaySize)
 		}
@@ -110,6 +110,7 @@
 		error = null
 		tooltipNode = null
 		allEvents = []
+		allEventsMs = []
 		timelineMin = 0
 		timelineMax = 0
 		timelineValue = 0
@@ -124,16 +125,16 @@
 				if (cancelled) return
 				loading = false
 
-				// Set up timeline state
-				allEvents = events ?? []
+				// Set up timeline state (follow events excluded — weight=0, not shown in tooltip)
+				allEvents = (events ?? []).filter((e: EventRecord) => e.kind !== 'follow')
+				allEventsMs = allEvents.map((e: EventRecord) => new Date(e.created_at).getTime())
 				currentSelfDid = selfDid
 				profileCache = new Map(nodes.map((n: NodeData) => [n.did, {
 					did: n.did, handle: n.handle, displayName: n.displayName, avatarUrl: n.avatarUrl
 				}]))
-				if (allEvents.length > 0) {
-					const timestamps = allEvents.map((e) => new Date(e.created_at).getTime())
-					timelineMin = Math.min(...timestamps)
-					timelineMax = Math.max(...timestamps)
+				if (allEventsMs.length > 0) {
+					timelineMin = Math.min(...allEventsMs)
+					timelineMax = Date.now()
 					timelineValue = timelineMax
 					timelineDisplay = timelineMax
 				}

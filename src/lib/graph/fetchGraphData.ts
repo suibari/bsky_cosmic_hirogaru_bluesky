@@ -50,6 +50,24 @@ function emptyNode(did: string): NodeData {
 	}
 }
 
+// AT Protocol TID (base32-sortable) encodes microseconds since epoch in the high 54 bits.
+// Decoding the rkey gives the actual record creation time without extra API calls.
+const TID_ALPHA = '234567abcdefghijklmnopqrstuvwxyz'
+function tidToIso(rkey: string): string | null {
+	try {
+		let n = 0n
+		for (const c of rkey) {
+			const i = TID_ALPHA.indexOf(c)
+			if (i < 0) return null
+			n = n * 32n + BigInt(i)
+		}
+		const ms = Number(n >> 10n) / 1000  // microseconds → milliseconds
+		return new Date(ms).toISOString()
+	} catch {
+		return null
+	}
+}
+
 export async function resolveHandle(handle: string): Promise<string> {
 	const res = await fetch(
 		`${BSKY_BASE}/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
@@ -124,10 +142,10 @@ async function queryConstellation(
 	if (!res.ok) return []
 	const data = await res.json()
 	return (data.records ?? [])
-		.map((l: { did?: string; created_at?: string }) => ({
+		.map((l: { did?: string; rkey?: string; created_at?: string }) => ({
 			src_did: l.did ?? '',
 			kind,
-			created_at: l.created_at ?? now
+			created_at: tidToIso(l.rkey ?? '') ?? l.created_at ?? now
 		}))
 		.filter((e: { src_did: string }) => e.src_did)
 }
@@ -148,9 +166,9 @@ async function getFollowers(did: string): Promise<Array<{ did: string; created_a
 	}
 	const data = await res.json()
 	return (data.records ?? [])
-		.map((l: { did?: string; created_at?: string }) => ({
+		.map((l: { did?: string; rkey?: string; created_at?: string }) => ({
 			did: l.did ?? '',
-			created_at: l.created_at ?? now
+			created_at: tidToIso(l.rkey ?? '') ?? l.created_at ?? now
 		}))
 		.filter((e: { did: string }) => e.did && e.did !== did)
 }
