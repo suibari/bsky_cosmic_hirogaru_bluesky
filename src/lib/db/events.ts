@@ -22,14 +22,12 @@ export async function insertEvents(events: EventRecord[], env: DbEnv): Promise<v
 }
 
 export async function fetchEventsByDid(did: string, env: DbEnv): Promise<EventRecord[]> {
-	const params = new URLSearchParams({
-		or:    `(actor_did.eq.${did},target_did.eq.${did})`,
-		order: 'created_at.desc',
-	})
-
-	const res = await dbFetch(`/events?${params}`, env, {
-		headers: { 'Accept': 'application/json' },
-	})
+	// URLSearchParams は DID の : を %3A にエンコードするため直接展開する (isTrackedDid と同様)
+	const res = await dbFetch(
+		`/events?or=(actor_did.eq.${did},target_did.eq.${did})&order=created_at.desc`,
+		env,
+		{ headers: { 'Accept': 'application/json' } },
+	)
 
 	if (!res.ok) {
 		throw new Error(`fetchEventsByDid failed: ${res.status}`)
