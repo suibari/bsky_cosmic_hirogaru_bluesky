@@ -33,8 +33,10 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 	let rawEvents
 	if (cached) {
 		rawEvents = await fetchEventsByDid(selfDid, env)
-		// last_accessed_at 更新
-		registerTrackedDid(selfDid, env).catch((err) => console.error('[db] registerTrackedDid (cached) failed:', err))
+		// last_accessed_at 更新（CF Workers では waitUntil が必要）
+		platform?.ctx?.waitUntil(
+			registerTrackedDid(selfDid, env).catch((err) => console.error('[db] registerTrackedDid (cached) failed:', err))
+		)
 	} else {
 		try {
 			rawEvents = await fetchRawEvents(selfDid)

@@ -6,14 +6,11 @@ export type { EventRecord }
 export async function insertEvents(events: EventRecord[], env: DbEnv): Promise<void> {
 	if (events.length === 0) return
 
-	// on_conflict で競合ターゲットを明示することで ON CONFLICT (columns) DO NOTHING が生成される。
-	// これにより「既存レコード → スキップ、未存在レコード → INSERT」が実現する。
-	const res = await dbFetch('/events?on_conflict=actor_did,target_did,kind,rkey', env, {
+	// PostgREST の on_conflict 列指定は DEFERRABLE/部分インデックスに対応しないため、
+	// RPC 関数経由で ON CONFLICT ON CONSTRAINT events_uq DO NOTHING を使う。
+	const res = await dbFetch('/rpc/upsert_events', env, {
 		method: 'POST',
-		headers: {
-			'Prefer': 'resolution=ignore-duplicates,return=minimal',
-		},
-		body: JSON.stringify(events),
+		body: JSON.stringify({ events }),
 	})
 
 	if (!res.ok) {
