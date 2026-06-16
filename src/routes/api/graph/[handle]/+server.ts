@@ -33,10 +33,25 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 	if (cached) {
 		rawEvents = await fetchEventsByDid(selfDid, env)
 	} else {
-		rawEvents = await fetchRawEvents(selfDid)
+		try {
+			rawEvents = await fetchRawEvents(selfDid)
+		} catch (e) {
+			console.error('[graph] fetchRawEvents failed:', e)
+			throw error(503, 'グラフデータの取得に失敗しました。しばらく待ってから再度お試しください。')
+		}
+	}
+
+	let graphData
+	try {
+		graphData = await buildGraphDataFromEvents(selfDid, rawEvents)
+	} catch (e) {
+		console.error('[graph] buildGraphDataFromEvents failed:', e)
+		throw error(503, 'プロフィールの取得に失敗しました。しばらく待ってから再度お試しください。')
+	}
+
+	if (!cached) {
 		insertEvents(rawEvents, env).catch((err) => console.warn('[db] insert failed:', err))
 	}
 
-	const graphData = await buildGraphDataFromEvents(selfDid, rawEvents)
 	return json({ ...graphData, events: rawEvents, cached })
 }
