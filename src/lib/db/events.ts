@@ -6,7 +6,9 @@ export type { EventRecord }
 export async function insertEvents(events: EventRecord[], env: DbEnv): Promise<void> {
 	if (events.length === 0) return
 
-	const res = await dbFetch('/events', env, {
+	// on_conflict で競合ターゲットを明示することで ON CONFLICT (columns) DO NOTHING が生成される。
+	// これにより「既存レコード → スキップ、未存在レコード → INSERT」が実現する。
+	const res = await dbFetch('/events?on_conflict=actor_did,target_did,kind,rkey', env, {
 		method: 'POST',
 		headers: {
 			'Prefer': 'resolution=ignore-duplicates,return=minimal',
@@ -14,11 +16,10 @@ export async function insertEvents(events: EventRecord[], env: DbEnv): Promise<v
 		body: JSON.stringify(events),
 	})
 
-	if (!res.ok && res.status !== 409) {
+	if (!res.ok) {
 		const text = await res.text()
 		throw new Error(`insertEvents failed: ${res.status} ${text}`)
 	}
-	// 409 = 重複キー違反。events は既にDBに存在するため registerTrackedDid は呼んでよい。
 }
 
 export async function fetchEventsByDid(did: string, env: DbEnv): Promise<EventRecord[]> {
