@@ -14,10 +14,11 @@ export async function insertEvents(events: EventRecord[], env: DbEnv): Promise<v
 		body: JSON.stringify(events),
 	})
 
-	if (!res.ok) {
+	if (!res.ok && res.status !== 409) {
 		const text = await res.text()
 		throw new Error(`insertEvents failed: ${res.status} ${text}`)
 	}
+	// 409 = 重複キー違反。events は既にDBに存在するため registerTrackedDid は呼んでよい。
 }
 
 export async function fetchEventsByDid(did: string, env: DbEnv): Promise<EventRecord[]> {
