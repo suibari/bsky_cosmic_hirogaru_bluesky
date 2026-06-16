@@ -51,9 +51,11 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 	if (!cached) {
 		// insertEvents 成功後にのみ tracked_dids へ登録する。
 		// fetch失敗→503の場合はここに到達しないため、次回アクセスで PDS から再取得される。
-		insertEvents(rawEvents, env)
+		// CF Workers では Response 返却後に Isolate が終了するため waitUntil で完了を保証する。
+		const dbWork = insertEvents(rawEvents, env)
 			.then(() => registerTrackedDid(selfDid, env))
 			.catch((err) => console.warn('[db] insert failed:', err))
+		platform?.ctx?.waitUntil(dbWork)
 	}
 
 	return json({ ...graphData, events: rawEvents, cached })
