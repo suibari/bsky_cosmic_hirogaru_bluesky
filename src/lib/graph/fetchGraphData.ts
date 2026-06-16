@@ -368,7 +368,12 @@ export async function buildGraphDataFromEvents(
 	selfDid: string,
 	events: EventRecord[]
 ): Promise<{ nodes: NodeData[]; selfDid: string; selfProfile: ProfileInfo }> {
-	const selfProfile = await getProfile(selfDid)
+	const selfProfile = await getProfile(selfDid).catch(() => ({
+		did: selfDid,
+		handle: selfDid,
+		displayName: '',
+		avatarUrl: ''
+	}))
 	const nodeMap = new Map<string, NodeData>()
 
 	for (const event of events) {
