@@ -2,6 +2,7 @@ import Sigma from 'sigma'
 import { animateNodes } from 'sigma/utils'
 import Graph from 'graphology'
 import { createNodeImageProgram } from '@sigma/node-image'
+import { drawDiscNodeHover } from 'sigma/rendering'
 import { computeHirogaruPositions, BASE_NODE_SIZE } from '$lib/graph/hirogaruLayout'
 import type { NodeData, GraphMode, GraphNodeAttributes, GraphEdgeAttributes } from '$lib/types'
 
@@ -313,7 +314,10 @@ export function initSigma(
 		})
 	}
 
-	const NodeImageProgram = createNodeImageProgram()
+	const NodeImageProgram = createNodeImageProgram({
+		drawHover: (context, data, settings) =>
+			drawDiscNodeHover(context, data, { ...settings, labelColor: { color: '#000000' } })
+	})
 
 	// Sigma 3.0.3 hardcodes preserveDrawingBuffer: false in its WebGL context creation,
 	// so we temporarily patch getContext to override it before Sigma initializes.
@@ -333,7 +337,7 @@ export function initSigma(
 		renderEdgeLabels: false,
 		labelFont: 'system-ui, sans-serif',
 		labelSize: 12,
-		labelColor: { color: '#000000' }
+		labelColor: { color: '#ffffff' }
 	})
 	HTMLCanvasElement.prototype.getContext = _origGetContext
 
