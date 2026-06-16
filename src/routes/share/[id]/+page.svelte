@@ -3,6 +3,19 @@
 	import type { PageData } from './$types'
 
 	let { data }: { data: PageData } = $props()
+
+	let handle = $state('')
+	let error = $state('')
+
+	async function handleSubmit() {
+		const trimmed = handle.trim().replace(/^@/, '')
+		if (!trimmed) {
+			error = 'ハンドルを入力してください'
+			return
+		}
+		error = ''
+		await goto(`/universe/${encodeURIComponent(trimmed)}`)
+	}
 </script>
 
 <svelte:head>
@@ -27,10 +40,27 @@
 		class="max-w-2xl w-full rounded-2xl shadow-2xl"
 	/>
 	<p class="text-xl font-bold text-white">@{data.handle}の超ひろがるBluesky!!</p>
-	<button
-		onclick={() => goto(`/universe/${encodeURIComponent(data.handle)}`)}
-		class="rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white hover:bg-sky-400"
+
+	<form
+		onsubmit={(e) => { e.preventDefault(); handleSubmit() }}
+		class="flex gap-2"
 	>
-		自分のひろがりを見る
-	</button>
+		<input
+			bind:value={handle}
+			placeholder="handle.bsky.social"
+			autocomplete="off"
+			spellcheck="false"
+			class="w-64 rounded bg-zinc-800 px-4 py-2 text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-sky-500"
+		/>
+		<button
+			type="submit"
+			class="rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white hover:bg-sky-400"
+		>
+			自分のひろがりを見る
+		</button>
+	</form>
+
+	{#if error}
+		<p class="text-sm text-red-400">{error}</p>
+	{/if}
 </div>
