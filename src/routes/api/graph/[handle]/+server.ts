@@ -24,13 +24,17 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 		throw error(404, 'Handle not found')
 	}
 
-	const cached = await isTrackedDid(selfDid, env).catch(() => false)
+	const cached = await isTrackedDid(selfDid, env).catch((err) => {
+		console.error('[db] isTrackedDid failed:', err)
+		return false
+	})
+	console.log(`[db] handle=${handle} did=${selfDid} cached=${cached}`)
 
 	let rawEvents
 	if (cached) {
 		rawEvents = await fetchEventsByDid(selfDid, env)
 		// last_accessed_at 更新
-		registerTrackedDid(selfDid, env).catch((err) => console.warn('[db] registerTrackedDid failed:', err))
+		registerTrackedDid(selfDid, env).catch((err) => console.error('[db] registerTrackedDid (cached) failed:', err))
 	} else {
 		try {
 			rawEvents = await fetchRawEvents(selfDid)
@@ -54,7 +58,8 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 		// CF Workers では Response 返却後に Isolate が終了するため waitUntil で完了を保証する。
 		const dbWork = insertEvents(rawEvents, env)
 			.then(() => registerTrackedDid(selfDid, env))
-			.catch((err) => console.warn('[db] insert failed:', err))
+			.then(() => console.log(`[db] registered did=${selfDid}`))
+			.catch((err) => console.error('[db] insert/register failed:', err))
 		platform?.ctx?.waitUntil(dbWork)
 	}
 
