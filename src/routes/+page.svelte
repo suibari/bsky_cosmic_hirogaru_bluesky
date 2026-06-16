@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation'
 	import TitleLogo from '$lib/components/TitleLogo.svelte'
+	import HelpModal from '$lib/components/HelpModal.svelte'
 
 	let handle = $state('')
 	let error = $state('')
+	let helpOpen = $state(false)
 
 	async function handleSubmit() {
 		const trimmed = handle.trim().replace(/^@/, '')
@@ -45,4 +47,14 @@
 	{#if error}
 		<p class="mt-4 text-sm text-red-400">{error}</p>
 	{/if}
+
+	<button
+		onclick={() => (helpOpen = true)}
+		class="mt-6 text-sm text-zinc-500 underline hover:text-zinc-300 transition-colors"
+		style="font-family: 'MaruMinya', sans-serif;"
+	>
+		ヘルプはこちら
+	</button>
 </main>
+
+<HelpModal open={helpOpen} onclose={() => (helpOpen = false)} />
