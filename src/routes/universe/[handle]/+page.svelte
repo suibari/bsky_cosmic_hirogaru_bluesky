@@ -218,13 +218,7 @@
 	<div class="pointer-events-none absolute inset-0" style:z-index="2">
 		<!-- Top bar -->
 		<div class="pointer-events-auto flex items-center gap-3 p-3">
-			<button
-				onclick={() => goto('/')}
-				class="rounded bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur hover:bg-black/60"
-			>
-				← 戻る
-			</button>
-			<span class="rounded bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur max-w-[150px] sm:max-w-none truncate" style="font-family: 'MaruMinya', sans-serif;">
+<span class="rounded bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur max-w-[150px] sm:max-w-none truncate" style="font-family: 'MaruMinya', sans-serif;">
 				@{handle}
 			</span>
 			<div class="ml-auto flex overflow-hidden rounded">
