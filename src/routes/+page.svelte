@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { goto } from '$app/navigation'
 	import { page } from '$app/stores'
+	import { onMount } from 'svelte'
 	import TitleLogo from '$lib/components/TitleLogo.svelte'
 	import HelpModal from '$lib/components/HelpModal.svelte'
 
 	let handle = $state('')
 	let error = $state('')
 	let helpOpen = $state(false)
+
+	onMount(() => {
+		const saved = localStorage.getItem('hirogaru_handle')
+		if (saved) handle = saved
+	})
 
 	async function handleSubmit() {
 		const trimmed = handle.trim().replace(/^@/, '')
@@ -15,6 +21,7 @@
 			return
 		}
 		error = ''
+		localStorage.setItem('hirogaru_handle', trimmed)
 		await goto(`/universe/${encodeURIComponent(trimmed)}`)
 	}
 </script>
