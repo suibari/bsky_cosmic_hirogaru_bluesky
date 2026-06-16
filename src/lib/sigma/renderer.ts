@@ -333,7 +333,7 @@ export function initSigma(
 		renderEdgeLabels: false,
 		labelFont: 'system-ui, sans-serif',
 		labelSize: 12,
-		labelColor: { color: '#ffffff' }
+		labelColor: { color: '#000000' }
 	})
 	HTMLCanvasElement.prototype.getContext = _origGetContext
 
