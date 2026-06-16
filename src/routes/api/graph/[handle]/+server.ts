@@ -26,12 +26,11 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 
 	const cached = await isTrackedDid(selfDid, env).catch(() => false)
 
-	// アクセスのたびに追跡登録（重複はサーバー側で無視）
-	registerTrackedDid(selfDid, env).catch((err) => console.warn('[db] registerTrackedDid failed:', err))
-
 	let rawEvents
 	if (cached) {
 		rawEvents = await fetchEventsByDid(selfDid, env)
+		// last_accessed_at 更新
+		registerTrackedDid(selfDid, env).catch((err) => console.warn('[db] registerTrackedDid failed:', err))
 	} else {
 		try {
 			rawEvents = await fetchRawEvents(selfDid)
@@ -50,7 +49,11 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 	}
 
 	if (!cached) {
-		insertEvents(rawEvents, env).catch((err) => console.warn('[db] insert failed:', err))
+		// insertEvents 成功後にのみ tracked_dids へ登録する。
+		// fetch失敗→503の場合はここに到達しないため、次回アクセスで PDS から再取得される。
+		insertEvents(rawEvents, env)
+			.then(() => registerTrackedDid(selfDid, env))
+			.catch((err) => console.warn('[db] insert failed:', err))
 	}
 
 	return json({ ...graphData, events: rawEvents, cached })
