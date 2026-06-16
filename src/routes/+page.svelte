@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation'
+	import { page } from '$app/stores'
 	import TitleLogo from '$lib/components/TitleLogo.svelte'
 	import HelpModal from '$lib/components/HelpModal.svelte'
 
@@ -22,14 +23,15 @@
 	<title>超ひろがるBluesky</title>
 	<meta property="og:title" content="超ひろがるBluesky" />
 	<meta property="og:description" content="Blueskyで無限に広がる青い宇宙!" />
-	<meta property="og:image" content="/ogp.png" />
+	<meta property="og:url" content={$page.url.origin} />
+	<meta property="og:image" content="{$page.url.origin}/ogp.png" />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="超ひろがるBluesky" />
 	<meta name="twitter:description" content="Blueskyで無限に広がる青い宇宙!" />
-	<meta name="twitter:image" content="/ogp.png" />
+	<meta name="twitter:image" content="{$page.url.origin}/ogp.png" />
 </svelte:head>
 
 <main class="flex min-h-screen flex-col items-center justify-center bg-black text-white">

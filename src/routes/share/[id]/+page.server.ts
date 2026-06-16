@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit'
 import type { PageServerLoad } from './$types'
 import { getShareKV } from '$lib/kv'
 
-export const load: PageServerLoad = async ({ params, platform }) => {
+export const load: PageServerLoad = async ({ params, platform, url }) => {
 	const kv = getShareKV(platform)
 	if (!kv) error(503, 'KV not available')
 
@@ -10,5 +10,5 @@ export const load: PageServerLoad = async ({ params, platform }) => {
 	if (!raw) error(404, 'Share not found')
 
 	const { handle } = JSON.parse(raw)
-	return { id: params.id, handle: handle as string }
+	return { id: params.id, handle: handle as string, origin: url.origin }
 }

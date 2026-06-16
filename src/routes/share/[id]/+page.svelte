@@ -9,14 +9,15 @@
 	<title>@{data.handle}の超ひろがるBluesky!!</title>
 	<meta property="og:title" content="@{data.handle}の超ひろがるBluesky!!" />
 	<meta property="og:description" content="Blueskyで無限に広がる青い宇宙!" />
-	<meta property="og:image" content="/api/share/{data.id}/image" />
+	<meta property="og:url" content="{data.origin}/share/{data.id}" />
+	<meta property="og:image" content="{data.origin}/api/share/{data.id}/image" />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="@{data.handle}の超ひろがるBluesky!!" />
 	<meta name="twitter:description" content="Blueskyで無限に広がる青い宇宙!" />
-	<meta name="twitter:image" content="/api/share/{data.id}/image" />
+	<meta name="twitter:image" content="{data.origin}/api/share/{data.id}/image" />
 </svelte:head>
 
 <div class="flex min-h-screen flex-col items-center justify-center gap-6 bg-slate-900 p-6">
