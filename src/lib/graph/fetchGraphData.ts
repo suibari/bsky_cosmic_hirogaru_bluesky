@@ -7,7 +7,10 @@ const UA = 'cho-hirogaru-bluesky/suibari-cha.bsky.social'
 const PAGE_LIMIT = 100
 const MAX_PAGES = 3
 // 自分の投稿のうち、バックリンクを取得する最大件数（多いほど詳細だが遅くなる）
-const MAX_POSTS_FOR_BACKLINKS = 10
+// CF Workers サブリクエスト上限 50/req に収まるよう調整:
+// resolveHandle(1)+isTrackedDid(1)+registerTrackedDid(1)+resolvePds(1)+listRecords(12)+getFollowers(1)
+// +backlinks(N×3)+getProfile(1)+getProfiles(4) ≤ 50 → N ≤ (50-22)/3 = 9.3 → N=7 で余裕を持たせる
+const MAX_POSTS_FOR_BACKLINKS = 7
 
 // ---- スコア重み（ここを変えると全体のスコア計算に反映される） ----
 // follow はデータとして記録するがスコアには含めない
