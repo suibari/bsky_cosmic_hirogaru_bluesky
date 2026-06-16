@@ -62,7 +62,7 @@
 			if (!res.ok) throw new Error('share failed')
 			const { url: shareUrl } = await res.json()
 
-			const postText = `@${handle}の超ひろがるBluesky!!\n${shareUrl}`
+			const postText = `@${handle}の超ひろがるBluesky!!\n${shareUrl}\n#超ひろがるBluesky`
 			const bskyUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(postText)}`
 			window.open(bskyUrl, '_blank', 'noopener,noreferrer')
 
