@@ -111,7 +111,7 @@ async function resolvePds(did: string): Promise<string> {
 	return pds.serviceEndpoint
 }
 
-async function listAllRecords(pdsUrl: string, did: string, collection: string): Promise<Record[]> {
+async function listAllRecords(pdsUrl: string, did: string, collection: string, maxPages = MAX_PAGES): Promise<Record[]> {
 	const records: Record[] = []
 	let cursor: string | undefined
 	let pages = 0
@@ -126,7 +126,7 @@ async function listAllRecords(pdsUrl: string, did: string, collection: string): 
 		}
 		cursor = data.cursor
 		pages++
-	} while (cursor && pages < MAX_PAGES)
+	} while (cursor && pages < maxPages)
 	return records
 }
 
@@ -257,11 +257,15 @@ export async function fetchRawEvents(selfDid: string): Promise<EventRecord[]> {
 	const pdsUrl = await resolvePds(selfDid)
 	const now = new Date().toISOString()
 
+	// CF Workers サブリクエスト上限 50/req のため、ページ合計数を変えられない。
+	// 消費内訳: resolvePds(1) + listRecords合計ページ(12) + getFollowers(1)
+	//          + backlinks(10×3=30) + getProfile(1) + getProfiles(4) = 49
+	// ページ配分: like(1)+repost(3)+follow(1)+post(7) = 12ページ固定
 	const [likeRecords, repostRecords, followRecords, postRecords, followerResults] = await Promise.all([
-		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.like'),
-		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.repost'),
-		listAllRecords(pdsUrl, selfDid, 'app.bsky.graph.follow'),
-		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.post'),
+		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.like', 1),
+		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.repost', 3),
+		listAllRecords(pdsUrl, selfDid, 'app.bsky.graph.follow', 1),
+		listAllRecords(pdsUrl, selfDid, 'app.bsky.feed.post', 7),
 		getFollowers(selfDid)
 	])
 
